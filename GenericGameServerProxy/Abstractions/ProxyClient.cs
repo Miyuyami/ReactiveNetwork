@@ -16,7 +16,7 @@ namespace GenericGameServerProxy.Abstractions
 
         private Subject<ClientStatus> StatusSubject = new Subject<ClientStatus>();
         private IObservable<ClientStatus> StatusChangedObservable;
-        public IObservable<ClientStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
+        public virtual IObservable<ClientStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
             this.StatusSubject
             .StartWith(this.Status)
             .DistinctUntilChanged()
@@ -54,6 +54,11 @@ namespace GenericGameServerProxy.Abstractions
             this.Status = ClientStatus.Stopped;
             this.StatusSubject.OnNext(ClientStatus.Stopped);
         }
+
+        public abstract IObservable<ClientResult> WhenDataReceived();
+        public abstract IObservable<ClientResult> Read();
+        public abstract IObservable<ClientResult> Write(byte[] bytes);
+        public abstract void WriteWithoutReponse(byte[] bytes);
 
         protected abstract void InternalStart();
         protected abstract void InternalStop();

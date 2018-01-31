@@ -26,11 +26,11 @@ namespace UnitTest
 
             try
             {
-                //this.TestConnectBeforeSub();
-                //this.TestConnectAfterSub();
-                //this.TestSubBeforeStartConnectAfterSub();
-                //this.TestMultipleConnect();
-                //this.TestStop();
+                this.TestConnectBeforeSub();
+                this.TestConnectAfterSub();
+                this.TestSubBeforeStartConnectAfterSub();
+                this.TestMultipleConnect();
+                this.TestStop();
                 this.TestRestartConnect();
             }
             finally
@@ -124,13 +124,10 @@ namespace UnitTest
             var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
-                s.Start();
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
                 var sub = s.WhenClientStatusChanged()
                            .Where(c => c.Status == ClientStatus.Started)
                            .Subscribe(c => count++);
+                s.Start();
                 new TcpClient().Connect(ProxyEndPoint);
                 new TcpClient().Connect(ProxyEndPoint);
                 new TcpClient().Connect(ProxyEndPoint);
@@ -141,8 +138,8 @@ namespace UnitTest
                 new TcpClient().Connect(ProxyEndPoint);
                 new TcpClient().Connect(ProxyEndPoint);
 
-                Thread.Sleep(1000);
-                Assert.AreEqual(11, count);
+                Thread.Sleep(10000);
+                Assert.AreEqual(8, count);
             }
             finally
             {
@@ -167,7 +164,10 @@ namespace UnitTest
                 s.Start();
                 Thread.Sleep(SleepTime);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
+                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(ProxyEndPoint);
+                Thread.Sleep(5000);
                 Thread.Sleep(SleepTime);
                 s.Stop();
                 Thread.Sleep(SleepTime);
@@ -176,7 +176,7 @@ namespace UnitTest
                 s.Start();
                 Thread.Sleep(SleepTime);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
+                Thread.Sleep(2000);
                 Thread.Sleep(SleepTime);
                 s.Stop();
                 Thread.Sleep(SleepTime);
@@ -188,8 +188,8 @@ namespace UnitTest
                 Thread.Sleep(SleepTime);
                 Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
 
-                Thread.Sleep(1000);
-                Assert.AreEqual(2, count);
+                Thread.Sleep(2000);
+                Assert.AreEqual(5, count);
             }
             finally
             {
@@ -237,10 +237,8 @@ namespace UnitTest
                 s.Start();
                 Thread.Sleep(SleepTime);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
                 Thread.Sleep(SleepTime);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
 
                 Thread.Sleep(1000);
                 Assert.AreEqual(4, count);
@@ -256,25 +254,51 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "")
+            {
+                ClientReceiveTimeout = TimeSpan.FromSeconds(5),
+            };
             try
             {
                 s.WhenClientStatusChanged()
                  .Where(c => c.Status == ClientStatus.Started)
-                 .Subscribe(c => count++);
+                 .Do(c => c.WhenStatusChanged()
+                           .Where(cs => cs == ClientStatus.Stopped)
+                           .Subscribe(_ => count--))
+                 .Subscribe(_ => count++);
                 s.Start();
 
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
                 new TcpClient().Connect(ProxyEndPoint);
-                Thread.Sleep(100);
+                Thread.Sleep(10000);
 
-                Assert.AreEqual(count, s.Clients.Count);
-                Assert.IsTrue(s.Clients.All(kvp => kvp.Value.Status == ClientStatus.Started));
+                s.Stop();
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Thread.Sleep(100);
+                s.Start();
+                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(ProxyEndPoint);
+                Thread.Sleep(10000);
+                Assert.AreEqual(0, s.ConnectedClients.Count); // all timed-out
+
+                var client1 = new TcpClient();
+                var client2 = new TcpClient();
+                var client3 = new TcpClient();
+                client1.Connect(ProxyEndPoint);
+                client2.Connect(ProxyEndPoint);
+                client3.Connect(ProxyEndPoint);
+                client3.Close();
+                client1.Close();
+
+                Thread.Sleep(2000);
+                Assert.AreEqual(1, count);
+                Assert.AreEqual(count, s.ConnectedClients.Count);
+                Assert.IsTrue(s.ConnectedClients.All(kvp => kvp.Value.Status == ClientStatus.Started &&
+                                                            ((TcpProxyClient)kvp.Value).IsConnected()));
             }
             finally
             {

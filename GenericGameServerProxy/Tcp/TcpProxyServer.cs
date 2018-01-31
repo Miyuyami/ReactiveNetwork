@@ -14,8 +14,12 @@ namespace GenericGameServerProxy.Tcp
     {
         private readonly TcpListener TcpListener;
 
-        public override IReadOnlyDictionary<Guid, IProxyClient> Clients => this._Clients;
-        private ConcurrentDictionary<Guid, IProxyClient> _Clients { get; } = new ConcurrentDictionary<Guid, IProxyClient>();
+        public virtual TimeSpan ClientReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
+        public virtual TimeSpan ClientSendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+
+        public override IReadOnlyDictionary<Guid, IProxyClient> ConnectedClients => this.Clients;
+
+        private readonly ConcurrentDictionary<Guid, IProxyClient> Clients = new ConcurrentDictionary<Guid, IProxyClient>();
 
         public TcpProxyServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint) : base(proxyEndPoint, targetEndPoint)
         {
@@ -34,22 +38,32 @@ namespace GenericGameServerProxy.Tcp
                 SerialDisposable sub2 = new SerialDisposable();
                 var sub1 = this.WhenStatusChanged()
                                .Where(s => s == ProxyServerStatus.Started)
-                               .Subscribe(_ =>
+                               .Subscribe(__ =>
                                {
                                    sub2.Disposable = Observable.While(() => this.Status == ProxyServerStatus.Started,
                                                                       Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
                                                                .Subscribe(tcpClient =>
                                                                {
-                                                                   var client = new TcpProxyClient(tcpClient);
+                                                                   var client = new TcpProxyClient(tcpClient)
+                                                                   {
+                                                                       ReceiveTimeout = this.ClientReceiveTimeout,
+                                                                       SendTimeout = this.ClientSendTimeout,
+                                                                   };
                                                                    Guid guid;
                                                                    do
                                                                    {
                                                                        guid = Guid.NewGuid();
-                                                                   } while (!this._Clients.TryAdd(guid, client));
+                                                                   } while (!this.Clients.TryAdd(guid, client));
 
                                                                    client.WhenStatusChanged()
-                                                                         .Subscribe(__ => ob.OnNext(client));
+                                                                         .Subscribe(___ => ob.OnNext(client));
+
                                                                    client.Start();
+
+                                                                   // a TcpClient is not valid anymore after stopping
+                                                                   client.WhenStatusChanged()
+                                                                         .Where(s => s == ClientStatus.Stopped)
+                                                                         .Subscribe(___ => this.Clients.TryRemove(guid, out _));
                                                                });
                                });
 
@@ -70,6 +84,13 @@ namespace GenericGameServerProxy.Tcp
         protected override void InternalStop()
         {
             this.TcpListener.Stop();
+
+            foreach (var client in this.Clients.Values)
+            {
+                client.Stop();
+            }
+
+            this.Clients.Clear();
         }
     }
 }

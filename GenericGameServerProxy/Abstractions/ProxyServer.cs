@@ -14,7 +14,7 @@ namespace GenericGameServerProxy.Abstractions
         public string Name { get; }
         public ProxyServerStatus Status { get; private set; }
 
-        public abstract IReadOnlyDictionary<Guid, IProxyClient> Clients { get; }
+        public abstract IReadOnlyDictionary<Guid, IProxyClient> ConnectedClients { get; }
 
         public ProxyServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint) : this(proxyEndPoint, targetEndPoint, String.Empty)
         {
