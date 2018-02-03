@@ -10,41 +10,41 @@ using GenericGameServerProxy.Contracts;
 
 namespace GenericGameServerProxy.Tcp
 {
-    public class TcpProxyServer : ProxyServer
+    public class TcpReactiveServer : ReactiveServer
     {
         private readonly TcpListener TcpListener;
 
         public virtual TimeSpan ClientReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
         public virtual TimeSpan ClientSendTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
-        public override IReadOnlyDictionary<Guid, IProxyClient> ConnectedClients => this.Clients;
+        public override IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients => this.Clients;
 
-        private readonly ConcurrentDictionary<Guid, IProxyClient> Clients = new ConcurrentDictionary<Guid, IProxyClient>();
+        private readonly ConcurrentDictionary<Guid, IReactiveClient> Clients = new ConcurrentDictionary<Guid, IReactiveClient>();
 
-        public TcpProxyServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint) : base(proxyEndPoint, targetEndPoint)
+        public TcpReactiveServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint) : base(proxyEndPoint, targetEndPoint)
         {
             this.TcpListener = new TcpListener(this.ProxyEndPoint);
         }
 
-        public TcpProxyServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint, string name) : base(proxyEndPoint, targetEndPoint, name)
+        public TcpReactiveServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint, string name) : base(proxyEndPoint, targetEndPoint, name)
         {
             this.TcpListener = new TcpListener(this.ProxyEndPoint);
         }
 
-        private IObservable<IProxyClient> ClientStatusObservable;
-        public override IObservable<IProxyClient> WhenClientStatusChanged() => this.ClientStatusObservable = this.ClientStatusObservable ??
-            Observable.Create<IProxyClient>(ob =>
+        private IObservable<IReactiveClient> ClientStatusObservable;
+        public override IObservable<IReactiveClient> WhenClientStatusChanged() => this.ClientStatusObservable = this.ClientStatusObservable ??
+            Observable.Create<IReactiveClient>(ob =>
             {
                 SerialDisposable sub2 = new SerialDisposable();
                 var sub1 = this.WhenStatusChanged()
-                               .Where(s => s == ProxyServerStatus.Started)
+                               .Where(s => s == ServerStatus.Started)
                                .Subscribe(__ =>
                                {
-                                   sub2.Disposable = Observable.While(() => this.Status == ProxyServerStatus.Started,
+                                   sub2.Disposable = Observable.While(() => this.Status == ServerStatus.Started,
                                                                       Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
                                                                .Subscribe(tcpClient =>
                                                                {
-                                                                   var client = new TcpProxyClient(tcpClient)
+                                                                   var client = new TcpReactiveClient(tcpClient)
                                                                    {
                                                                        ReceiveTimeout = this.ClientReceiveTimeout,
                                                                        SendTimeout = this.ClientSendTimeout,

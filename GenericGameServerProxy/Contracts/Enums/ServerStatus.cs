@@ -1,6 +1,6 @@
 ﻿namespace GenericGameServerProxy.Contracts
 {
-    public enum ProxyServerStatus
+    public enum ServerStatus
     {
         Stopped = 0,
         Stopping,

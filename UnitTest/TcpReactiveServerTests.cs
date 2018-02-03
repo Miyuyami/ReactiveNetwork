@@ -11,7 +11,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace UnitTest
 {
     [TestClass]
-    public class TcpProxyServerTests
+    public class TcpReactiveServerTests
     {
         static IPAddress IPAddress = IPAddress.Parse("127.0.0.1");
         const int Port = 12345;
@@ -44,7 +44,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
                 s.Start();
@@ -70,7 +70,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
                 s.Start();
@@ -96,7 +96,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -121,7 +121,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -152,7 +152,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -202,7 +202,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -254,7 +254,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpProxyServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "")
+            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "")
             {
                 ClientReceiveTimeout = TimeSpan.FromSeconds(5),
             };
@@ -298,7 +298,7 @@ namespace UnitTest
                 Assert.AreEqual(1, count);
                 Assert.AreEqual(count, s.ConnectedClients.Count);
                 Assert.IsTrue(s.ConnectedClients.All(kvp => kvp.Value.Status == ClientStatus.Started &&
-                                                            ((TcpProxyClient)kvp.Value).IsConnected()));
+                                                            ((TcpReactiveClient)kvp.Value).IsConnected()));
             }
             finally
             {

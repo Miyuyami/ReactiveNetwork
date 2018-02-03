@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GenericGameServerProxy", "GenericGameServerProxy\GenericGameServerProxy.csproj", "{8A91D080-75FD-45D6-A32B-F40E1A252802}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ReactiveNetwork", "GenericGameServerProxy\ReactiveNetwork.csproj", "{8A91D080-75FD-45D6-A32B-F40E1A252802}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{5F49B915-964D-4751-BEEE-4F433CAA3A2D}"
 EndProject

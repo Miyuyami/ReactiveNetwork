@@ -4,9 +4,9 @@ using System.Net;
 
 namespace GenericGameServerProxy.Contracts
 {
-    public interface IProxyServer
+    public interface IReactiveServer
     {
-        IReadOnlyDictionary<Guid, IProxyClient> ConnectedClients { get; }
+        IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
 
         IPEndPoint ProxyEndPoint { get; }
 
@@ -14,12 +14,12 @@ namespace GenericGameServerProxy.Contracts
 
         string Name { get; }
 
-        ProxyServerStatus Status { get; }
+        ServerStatus Status { get; }
 
 
-        IObservable<ProxyServerStatus> WhenStatusChanged();
+        IObservable<ServerStatus> WhenStatusChanged();
 
-        IObservable<IProxyClient> WhenClientStatusChanged();
+        IObservable<IReactiveClient> WhenClientStatusChanged();
 
         void Start();
 

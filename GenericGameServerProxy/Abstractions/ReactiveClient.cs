@@ -5,11 +5,11 @@ using GenericGameServerProxy.Contracts;
 
 namespace GenericGameServerProxy.Abstractions
 {
-    public abstract class ProxyClient : IProxyClient
+    public abstract class ReactiveClient : IReactiveClient
     {
         public ClientStatus Status { get; private set; }
 
-        public ProxyClient()
+        public ReactiveClient()
         {
 
         }

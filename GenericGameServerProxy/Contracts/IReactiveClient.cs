@@ -2,11 +2,10 @@
 
 namespace GenericGameServerProxy.Contracts
 {
-    public interface IProxyClient
+    public interface IReactiveClient
     {
         ClientStatus Status { get; }
-
-
+        
         IObservable<ClientStatus> WhenStatusChanged();
 
         IObservable<ClientResult> WhenDataReceived();

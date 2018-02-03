@@ -9,7 +9,7 @@ using GenericGameServerProxy.Contracts;
 
 namespace GenericGameServerProxy.Tcp
 {
-    public class TcpProxyClient : ProxyClient
+    public class TcpReactiveClient : ReactiveClient
     {
         public TcpClient TcpClient { get; }
         public Socket Socket { get; }
@@ -22,7 +22,7 @@ namespace GenericGameServerProxy.Tcp
         private const int _BufferLength = 1 << 20; // 1MiB
         private readonly byte[] _Buffer = new byte[_BufferLength];
 
-        protected internal TcpProxyClient(TcpClient connectedTcpClient) : base()
+        protected internal TcpReactiveClient(TcpClient connectedTcpClient) : base()
         {
             this.TcpClient = connectedTcpClient;
             this.Socket = this.TcpClient.Client;
@@ -134,7 +134,7 @@ namespace GenericGameServerProxy.Tcp
         {
             if (this.HasEverStarted)
             {
-                throw new InvalidOperationException($"{nameof(TcpProxyClient)} cannot be started again after being stopped.");
+                throw new InvalidOperationException($"{nameof(TcpReactiveClient)} cannot be started again after being stopped.");
             }
 
             this.HasEverStarted = true;
@@ -149,17 +149,17 @@ namespace GenericGameServerProxy.Tcp
             this.DataReceivedConnectionDisposable?.Dispose();
         }
 
-        public static IObservable<TcpProxyClient> CreateClientConnection(IPEndPoint targetIpEndPoint)
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint targetIpEndPoint)
             => CreateClientConnection(targetIpEndPoint.Address, targetIpEndPoint.Port);
 
-        public static IObservable<TcpProxyClient> CreateClientConnection(IPAddress ipAddress, int port) =>
-            Observable.Create<TcpProxyClient>(ob =>
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port) =>
+            Observable.Create<TcpReactiveClient>(ob =>
             {
                 var tcpClient = new TcpClient();
                 var sub = Observable.FromAsync(() => tcpClient.ConnectAsync(ipAddress, port))
                                     .Subscribe(onNext: _ =>
                                     {
-                                        var client = new TcpProxyClient(tcpClient);
+                                        var client = new TcpReactiveClient(tcpClient);
                                         client.Start();
                                         ob.Respond(client);
                                     },
