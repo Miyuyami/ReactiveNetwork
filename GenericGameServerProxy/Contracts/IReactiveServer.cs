@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 
-namespace GenericGameServerProxy.Contracts
+namespace ReactiveNetwork.Contracts
 {
     public interface IReactiveServer
     {

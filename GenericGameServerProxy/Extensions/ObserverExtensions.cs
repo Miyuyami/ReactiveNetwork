@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GenericGameServerProxy
+namespace ReactiveNetwork
 {
     public static class ObserverExtensions
     {

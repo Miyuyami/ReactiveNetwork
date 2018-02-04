@@ -5,10 +5,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using GenericGameServerProxy.Abstractions;
-using GenericGameServerProxy.Contracts;
+using ReactiveNetwork.Abstractions;
+using ReactiveNetwork.Contracts;
 
-namespace GenericGameServerProxy.Tcp
+namespace ReactiveNetwork.Tcp
 {
     public class TcpReactiveServer : ReactiveServer
     {

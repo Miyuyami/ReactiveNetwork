@@ -1,4 +1,4 @@
-﻿namespace GenericGameServerProxy.Contracts
+﻿namespace ReactiveNetwork.Contracts
 {
     public enum ServerStatus
     {

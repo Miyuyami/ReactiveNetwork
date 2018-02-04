@@ -4,10 +4,10 @@ using System.Net.Sockets;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using GenericGameServerProxy.Abstractions;
-using GenericGameServerProxy.Contracts;
+using ReactiveNetwork.Abstractions;
+using ReactiveNetwork.Contracts;
 
-namespace GenericGameServerProxy.Tcp
+namespace ReactiveNetwork.Tcp
 {
     public class TcpReactiveClient : ReactiveClient
     {
@@ -66,7 +66,7 @@ namespace GenericGameServerProxy.Tcp
                                                                       {
                                                                           byte[] readBytes = new byte[receivedBytes];
                                                                           Buffer.BlockCopy(this._Buffer, 0, readBytes, 0, receivedBytes);
-                                                                          ob.OnNext(new ClientResult(this, ClientEvent.Read, readBytes));
+                                                                          ob.OnNext(ClientResult.FromRead(this, readBytes));
                                                                       }
                                                                   },
                                                                   onCompleted: ob.OnCompleted);
@@ -92,11 +92,11 @@ namespace GenericGameServerProxy.Tcp
             this.WhenDataReceived()
                 .Take(1);
 
-        // TODO: may throw TimeoutException
         public override IObservable<ClientResult> Write(byte[] bytes) =>
             Observable.FromAsync(t => this.NetworkStream.WriteAsync(bytes, 0, bytes.Length, t))
+            .Select(_ => ClientResult.FromWrite(this, bytes, true))
             .Timeout(this.SendTimeout)
-            .Select(_ => new ClientResult(this, ClientEvent.Write, bytes));
+            .Catch<ClientResult, TimeoutException>(_ => Observable.Return(ClientResult.FromWrite(this, bytes, false)));
 
 
         public override void WriteWithoutReponse(byte[] bytes) =>

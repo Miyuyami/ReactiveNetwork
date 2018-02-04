@@ -4,8 +4,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Threading;
-using GenericGameServerProxy.Contracts;
-using GenericGameServerProxy.Tcp;
+using ReactiveNetwork.Contracts;
+using ReactiveNetwork.Tcp;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace UnitTest
@@ -15,7 +15,7 @@ namespace UnitTest
     {
         static IPAddress IPAddress = IPAddress.Parse("127.0.0.1");
         const int Port = 12345;
-        static IPEndPoint ProxyEndPoint = new IPEndPoint(IPAddress, Port);
+        static IPEndPoint EndPoint = new IPEndPoint(IPAddress, Port);
         static int SleepTime = 1000;
 
         [TestMethod]
@@ -44,12 +44,12 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "");
+            var s = new TcpReactiveServer(EndPoint, "");
             try
             {
                 s.Start();
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(SleepTime);
                 var sub = s.WhenClientStatusChanged()
                            .Where(c => c.Status == ClientStatus.Started)
@@ -70,7 +70,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "");
+            var s = new TcpReactiveServer(EndPoint, "");
             try
             {
                 s.Start();
@@ -79,7 +79,7 @@ namespace UnitTest
                            .Where(c => c.Status == ClientStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(SleepTime);
 
                 Thread.Sleep(1000);
@@ -96,7 +96,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "");
+            var s = new TcpReactiveServer(EndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -104,7 +104,7 @@ namespace UnitTest
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
                 s.Start();
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(SleepTime);
 
                 Thread.Sleep(1000);
@@ -121,22 +121,22 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "");
+            var s = new TcpReactiveServer(EndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
                            .Where(c => c.Status == ClientStatus.Started)
                            .Subscribe(c => count++);
                 s.Start();
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
 
                 Thread.Sleep(10000);
                 Assert.AreEqual(8, count);
@@ -152,21 +152,21 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "");
+            var s = new TcpReactiveServer(EndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
                            .Where(c => c.Status == ClientStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
                 Thread.Sleep(SleepTime);
                 s.Start();
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(5000);
                 Thread.Sleep(SleepTime);
                 s.Stop();
@@ -175,18 +175,18 @@ namespace UnitTest
                 Thread.Sleep(SleepTime);
                 s.Start();
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(2000);
                 Thread.Sleep(SleepTime);
                 s.Stop();
                 Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
                 Thread.Sleep(SleepTime);
                 s.Start();
                 Thread.Sleep(SleepTime);
                 s.Stop();
                 Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
 
                 Thread.Sleep(2000);
                 Assert.AreEqual(5, count);
@@ -202,7 +202,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "");
+            var s = new TcpReactiveServer(EndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -211,14 +211,14 @@ namespace UnitTest
                 Thread.Sleep(SleepTime);
                 s.Start();
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(100);
                 Thread.Sleep(SleepTime);
                 s.Stop();
                 Thread.Sleep(SleepTime);
                 s.Start();
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(100);
                 Thread.Sleep(SleepTime);
                 s.Stop();
@@ -227,7 +227,7 @@ namespace UnitTest
                 Thread.Sleep(SleepTime);
                 s.Stop();
                 Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
                 Thread.Sleep(100);
                 Thread.Sleep(SleepTime);
                 s.Start();
@@ -236,9 +236,9 @@ namespace UnitTest
                 Thread.Sleep(SleepTime);
                 s.Start();
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(SleepTime);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
 
                 Thread.Sleep(1000);
                 Assert.AreEqual(4, count);
@@ -254,7 +254,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, "")
+            var s = new TcpReactiveServer(EndPoint, "")
             {
                 ClientReceiveTimeout = TimeSpan.FromSeconds(5),
             };
@@ -268,29 +268,29 @@ namespace UnitTest
                  .Subscribe(_ => count++);
                 s.Start();
 
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(10000);
 
                 s.Stop();
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(ProxyEndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
+                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
                 Thread.Sleep(100);
                 s.Start();
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
-                new TcpClient().Connect(ProxyEndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
                 Thread.Sleep(10000);
                 Assert.AreEqual(0, s.ConnectedClients.Count); // all timed-out
 
                 var client1 = new TcpClient();
                 var client2 = new TcpClient();
                 var client3 = new TcpClient();
-                client1.Connect(ProxyEndPoint);
-                client2.Connect(ProxyEndPoint);
-                client3.Connect(ProxyEndPoint);
+                client1.Connect(EndPoint);
+                client2.Connect(EndPoint);
+                client3.Connect(EndPoint);
                 client3.Close();
                 client1.Close();
 

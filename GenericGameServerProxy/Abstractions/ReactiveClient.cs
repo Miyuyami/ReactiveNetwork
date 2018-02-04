@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using GenericGameServerProxy.Contracts;
+using ReactiveNetwork.Contracts;
 
-namespace GenericGameServerProxy.Abstractions
+namespace ReactiveNetwork.Abstractions
 {
     public abstract class ReactiveClient : IReactiveClient
     {

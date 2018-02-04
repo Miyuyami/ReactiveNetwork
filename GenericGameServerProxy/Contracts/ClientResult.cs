@@ -1,16 +1,24 @@
-﻿namespace GenericGameServerProxy.Contracts
+﻿namespace ReactiveNetwork.Contracts
 {
     public class ClientResult
     {
-        public IReactiveClient ProxyClient { get; }
+        public IReactiveClient Client { get; }
         public ClientEvent EventType { get; }
         public byte[] Data { get; }
+        public bool Success { get; }
 
-        public ClientResult(IReactiveClient proxyClient, ClientEvent eventType, byte[] data)
+        private ClientResult(IReactiveClient client, ClientEvent eventType, byte[] data, bool success)
         {
-            this.ProxyClient = proxyClient;
+            this.Client = client;
             this.EventType = eventType;
             this.Data = data;
+            this.Success = success;
         }
+
+        public static ClientResult FromRead(IReactiveClient client, byte[] data, bool success = true)
+            => new ClientResult(client, ClientEvent.Read, data, success);
+
+        public static ClientResult FromWrite(IReactiveClient client, byte[] data, bool success)
+            => new ClientResult(client, ClientEvent.Write, data, success);
     }
 }

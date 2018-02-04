@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace GenericGameServerProxy.Contracts
+namespace ReactiveNetwork.Contracts
 {
     public interface IReactiveClient
     {
