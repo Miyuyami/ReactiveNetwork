@@ -240,7 +240,7 @@ namespace UnitTest
                 Thread.Sleep(SleepTime);
                 new TcpClient().Connect(EndPoint);
 
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
                 Assert.AreEqual(4, count);
             }
             finally

@@ -11,13 +11,13 @@ namespace ReactiveNetwork.Tcp
 {
     public class TcpReactiveClient : ReactiveClient
     {
-        public TcpClient TcpClient { get; }
-        public Socket Socket { get; }
-        public NetworkStream NetworkStream { get; private set; }
-
         public virtual int RetryCount { get; set; } = 5;
-        public virtual TimeSpan ReceiveTimeout { get; set; }
-        public virtual TimeSpan SendTimeout { get; set; }
+        public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
+        public virtual TimeSpan SendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+
+        private readonly TcpClient TcpClient;
+        private readonly Socket Socket;
+        private readonly NetworkStream NetworkStream;
 
         private const int _BufferLength = 1 << 20; // 1MiB
         private readonly byte[] _Buffer = new byte[_BufferLength];

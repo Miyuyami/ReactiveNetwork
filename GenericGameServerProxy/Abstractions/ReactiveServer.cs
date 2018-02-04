@@ -15,6 +15,16 @@ namespace ReactiveNetwork.Abstractions
 
         public abstract IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
 
+        public ReactiveServer(IPAddress address, int port) : this(new IPEndPoint(address, port))
+        {
+
+        }
+
+        public ReactiveServer(IPAddress address, int port, string name) : this(new IPEndPoint(address, port), name)
+        {
+
+        }
+
         public ReactiveServer(IPEndPoint endPoint) : this(endPoint, String.Empty)
         {
 

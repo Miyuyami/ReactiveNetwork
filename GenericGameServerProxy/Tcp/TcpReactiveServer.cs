@@ -21,14 +21,24 @@ namespace ReactiveNetwork.Tcp
 
         private readonly ConcurrentDictionary<Guid, IReactiveClient> Clients = new ConcurrentDictionary<Guid, IReactiveClient>();
 
+        public TcpReactiveServer(IPAddress address, int port) : base(address, port)
+        {
+            this.TcpListener = new TcpListener(address, port);
+        }
+
+        public TcpReactiveServer(IPAddress address, int port, string name) : base(address, port, name)
+        {
+            this.TcpListener = new TcpListener(address, port);
+        }
+
         public TcpReactiveServer(IPEndPoint endPoint) : base(endPoint)
         {
-            this.TcpListener = new TcpListener(this.EndPoint);
+            this.TcpListener = new TcpListener(endPoint);
         }
 
         public TcpReactiveServer(IPEndPoint endPoint, string name) : base(endPoint, name)
         {
-            this.TcpListener = new TcpListener(this.EndPoint);
+            this.TcpListener = new TcpListener(endPoint);
         }
 
         private IObservable<IReactiveClient> ClientStatusObservable;
