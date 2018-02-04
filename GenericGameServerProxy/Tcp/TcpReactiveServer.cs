@@ -21,14 +21,14 @@ namespace GenericGameServerProxy.Tcp
 
         private readonly ConcurrentDictionary<Guid, IReactiveClient> Clients = new ConcurrentDictionary<Guid, IReactiveClient>();
 
-        public TcpReactiveServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint) : base(proxyEndPoint, targetEndPoint)
+        public TcpReactiveServer(IPEndPoint endPoint) : base(endPoint)
         {
-            this.TcpListener = new TcpListener(this.ProxyEndPoint);
+            this.TcpListener = new TcpListener(this.EndPoint);
         }
 
-        public TcpReactiveServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint, string name) : base(proxyEndPoint, targetEndPoint, name)
+        public TcpReactiveServer(IPEndPoint endPoint, string name) : base(endPoint, name)
         {
-            this.TcpListener = new TcpListener(this.ProxyEndPoint);
+            this.TcpListener = new TcpListener(this.EndPoint);
         }
 
         private IObservable<IReactiveClient> ClientStatusObservable;

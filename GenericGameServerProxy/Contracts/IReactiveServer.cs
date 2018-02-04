@@ -8,9 +8,7 @@ namespace GenericGameServerProxy.Contracts
     {
         IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
 
-        IPEndPoint ProxyEndPoint { get; }
-
-        IPEndPoint TargetEndPoint { get; }
+        IPEndPoint EndPoint { get; }
 
         string Name { get; }
 

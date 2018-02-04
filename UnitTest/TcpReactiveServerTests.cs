@@ -44,7 +44,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, "");
             try
             {
                 s.Start();
@@ -70,7 +70,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, "");
             try
             {
                 s.Start();
@@ -96,7 +96,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -121,7 +121,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -152,7 +152,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -202,7 +202,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "");
+            var s = new TcpReactiveServer(ProxyEndPoint, "");
             try
             {
                 var sub = s.WhenClientStatusChanged()
@@ -254,7 +254,7 @@ namespace UnitTest
         {
             int count = 0;
 
-            var s = new TcpReactiveServer(ProxyEndPoint, new IPEndPoint(IPAddress.Any, 0), "")
+            var s = new TcpReactiveServer(ProxyEndPoint, "")
             {
                 ClientReceiveTimeout = TimeSpan.FromSeconds(5),
             };

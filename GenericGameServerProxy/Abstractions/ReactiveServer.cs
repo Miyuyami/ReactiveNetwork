@@ -9,22 +9,20 @@ namespace GenericGameServerProxy.Abstractions
 {
     public abstract class ReactiveServer : IReactiveServer
     {
-        public IPEndPoint ProxyEndPoint { get; }
-        public IPEndPoint TargetEndPoint { get; }
+        public IPEndPoint EndPoint { get; }
         public string Name { get; }
         public ServerStatus Status { get; private set; }
 
         public abstract IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
 
-        public ReactiveServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint) : this(proxyEndPoint, targetEndPoint, String.Empty)
+        public ReactiveServer(IPEndPoint endPoint) : this(endPoint, String.Empty)
         {
 
         }
 
-        public ReactiveServer(IPEndPoint proxyEndPoint, IPEndPoint targetEndPoint, string name)
+        public ReactiveServer(IPEndPoint endPoint, string name)
         {
-            this.ProxyEndPoint = proxyEndPoint;
-            this.TargetEndPoint = targetEndPoint;
+            this.EndPoint = endPoint;
             this.Name = name;
         }
 
@@ -67,11 +65,6 @@ namespace GenericGameServerProxy.Abstractions
 
             this.Status = ServerStatus.Stopped;
             this.StatusSubject.OnNext(ServerStatus.Stopped);
-        }
-
-        public override string ToString()
-        {
-            return $"{this.Name} - {this.ProxyEndPoint} to {this.TargetEndPoint}";
         }
 
         public abstract IObservable<IReactiveClient> WhenClientStatusChanged();
