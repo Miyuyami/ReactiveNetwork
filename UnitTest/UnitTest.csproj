@@ -90,8 +90,12 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\GenericGameServerProxy\ReactiveNetwork.csproj">
-      <Project>{8a91d080-75fd-45d6-a32b-f40e1a252802}</Project>
+    <ProjectReference Include="..\MiscUtils\MiscUtils\MiscUtils.csproj">
+      <Project>{d6fbfc9e-2ce8-4ad4-80e3-7253bdf7a2b3}</Project>
+      <Name>MiscUtils</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ReactiveNetwork\ReactiveNetwork.csproj">
+      <Project>{f7a6815a-d622-475a-aa22-e1a01a0a180d}</Project>
       <Name>ReactiveNetwork</Name>
     </ProjectReference>
   </ItemGroup>
