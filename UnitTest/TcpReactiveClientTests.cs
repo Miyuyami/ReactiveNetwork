@@ -11,13 +11,19 @@ namespace UnitTest
     [TestClass]
     public class TcpReactiveClientTests
     {
-        static TcpReactiveServer Server;
+        private TcpReactiveServer Server;
 
-        [ClassInitialize]
-        public static void InitilizeServer(TestContext testContext)
+        [TestInitialize]
+        public void InitilizeServer()
         {
-            Server = new TcpReactiveServer(IPAddress.Parse("127.0.0.1"), 10101);
-            Server.Start();
+            this.Server = new TcpReactiveServer(IPAddress.Parse("127.0.0.1"), 10101);
+            this.Server.Start();
+        }
+
+        [TestCleanup]
+        public void CleanupServer()
+        {
+            this.Server.Stop();
         }
 
         [TestMethod]
@@ -34,7 +40,7 @@ namespace UnitTest
         public async Task TestWriteAndReceive()
         {
             byte[] bytes = new byte[] { 2, 3, 10, 8, 16 };
-            var serverClientTask = Server.WhenClientStatusChanged().Where(c => c.Status == ClientStatus.Started).Take(1).ToTask();
+            var serverClientTask = this.Server.WhenClientStatusChanged().Where(c => c.Status == ClientStatus.Started).Take(1).ToTask();
             var client = await TcpReactiveClient.CreateClientConnection(IPAddress.Parse("127.0.0.1"), 10101);
             var serverClient = await serverClientTask;
             var receivedResultTask = serverClient.WhenDataReceived().Take(1).ToTask();
