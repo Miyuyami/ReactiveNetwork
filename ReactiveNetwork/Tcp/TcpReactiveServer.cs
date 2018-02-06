@@ -54,11 +54,7 @@ namespace ReactiveNetwork.Tcp
                                                                       Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
                                                                .Subscribe(tcpClient =>
                                                                {
-                                                                   var client = new TcpReactiveClient(tcpClient)
-                                                                   {
-                                                                       ReceiveTimeout = this.ClientReceiveTimeout,
-                                                                       SendTimeout = this.ClientSendTimeout,
-                                                                   };
+                                                                   IReactiveClient client = this.CreateClient(tcpClient);
                                                                    Guid guid;
                                                                    do
                                                                    {
@@ -85,6 +81,13 @@ namespace ReactiveNetwork.Tcp
             })
             .Publish()
             .RefCount();
+
+        protected virtual IReactiveClient CreateClient(TcpClient connectedTcpClient) =>
+            new TcpReactiveClient(connectedTcpClient)
+            {
+                ReceiveTimeout = this.ClientReceiveTimeout,
+                SendTimeout = this.ClientSendTimeout,
+            };
 
         protected override void InternalStart()
         {
