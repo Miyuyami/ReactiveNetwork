@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using MiscUtils.Logging;
 using ReactiveNetwork.Abstractions;
 using ReactiveNetwork.Contracts;
 
@@ -76,7 +77,7 @@ namespace ReactiveNetwork.Tcp
                                                                .Subscribe(tcpClient =>
                                                                {
                                                                    sub3.Disposable = this.CreateClient(tcpClient)
-                                                                                         .Subscribe(client =>
+                                                                                         .Subscribe(onNext: client =>
                                                                                          {
                                                                                              Guid guid;
                                                                                              do
@@ -93,7 +94,8 @@ namespace ReactiveNetwork.Tcp
                                                                                              client.WhenStatusChanged()
                                                                                                    .Where(s => s == ClientStatus.Stopped)
                                                                                                    .Subscribe(___ => this.Clients.TryRemove(guid, out _));
-                                                                                         });
+                                                                                         },
+                                                                                         onError: e => SimpleLogger.Error(e));
                                                                });
                                });
 
