@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System;
+using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
@@ -30,6 +31,10 @@ namespace UnitTest
         [TestMethod]
         public async Task TestCreateConnection()
         {
+            TcpReactiveClient client = null;
+            var sub = TcpReactiveClient.CreateClientConnection(IPAddress.Parse("127.0.0.1"), 10101).Subscribe(c => client = c);
+            await Task.Delay(1000);
+            Assert.IsNotNull(client);
             await Assert.ThrowsExceptionAsync<SocketException>(() => TcpReactiveClient.CreateClientConnection(IPAddress.Parse("127.0.0.1"), 10000).ToTask());
             var client2 = await TcpReactiveClient.CreateClientConnection(IPAddress.Parse("127.0.0.1"), 10101);
             Assert.IsNotNull(client2);

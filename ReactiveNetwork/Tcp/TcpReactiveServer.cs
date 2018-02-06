@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using MiscUtils.Logging;
 using ReactiveNetwork.Abstractions;
@@ -66,45 +65,43 @@ namespace ReactiveNetwork.Tcp
         public override IObservable<IReactiveClient> WhenClientStatusChanged() => this.ClientStatusObservable = this.ClientStatusObservable ??
             Observable.Create<IReactiveClient>(ob =>
             {
-                SerialDisposable sub2 = new SerialDisposable();
-                SerialDisposable sub3 = new SerialDisposable();
-                var sub1 = this.WhenStatusChanged()
-                               .Where(s => s == ServerStatus.Started)
-                               .Subscribe(__ =>
-                               {
-                                   sub2.Disposable = Observable.While(() => this.Status == ServerStatus.Started,
-                                                                      Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
-                                                               .Subscribe(tcpClient =>
-                                                               {
-                                                                   sub3.Disposable = this.CreateClient(tcpClient)
-                                                                                         .Subscribe(onNext: client =>
-                                                                                         {
-                                                                                             Guid guid;
-                                                                                             do
-                                                                                             {
-                                                                                                 guid = Guid.NewGuid();
-                                                                                             } while (!this.Clients.TryAdd(guid, client));
+                var sub = this.WhenStatusChanged()
+                              .Where(s => s == ServerStatus.Started)
+                              .Subscribe(__ =>
+                              {
+                                  Observable.While(() => this.Status == ServerStatus.Started,
+                                                   Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
+                                            .Subscribe(onNext: tcpClient =>
+                                            {
+                                                this.CreateClient(tcpClient)
+                                                    .Subscribe(onNext: client =>
+                                                    {
+                                                        Guid guid;
+                                                        do
+                                                        {
+                                                            guid = Guid.NewGuid();
+                                                        } while (!this.Clients.TryAdd(guid, client));
 
-                                                                                             client.WhenStatusChanged()
-                                                                                                   .Subscribe(___ => ob.OnNext(client));
+                                                        client.WhenStatusChanged()
+                                                              .Subscribe(___ => ob.OnNext(client));
 
-                                                                                             client.Start();
+                                                        client.Start();
 
-                                                                                             // a TcpClient is not valid anymore after stopping
-                                                                                             client.WhenStatusChanged()
-                                                                                                   .Where(s => s == ClientStatus.Stopped)
-                                                                                                   .Subscribe(___ => this.Clients.TryRemove(guid, out _));
-                                                                                         },
-                                                                                         onError: e => SimpleLogger.Error(e));
-                                                               });
-                               });
+                                                        // a TcpClient is not valid anymore after stopping
+                                                        client.WhenStatusChanged()
+                                                              .Where(s => s == ClientStatus.Stopped)
+                                                              .Subscribe(___ => this.Clients.TryRemove(guid, out _));
+                                                    },
+                                                    onError: e => SimpleLogger.Error(e));
+                                            },
+                                            onError: e => SimpleLogger.Error(e));
+                              });
 
-                return () =>
-                {
-                    sub1.Dispose();
-                    sub2.Dispose();
-                    sub3.Dispose();
-                };
+                return sub.Dispose;
+                //return () =>
+                //{
+                //    sub.Dispose();
+                //};
             })
             .Publish()
             .RefCount();
