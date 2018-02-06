@@ -163,7 +163,7 @@ namespace ReactiveNetwork.Tcp
                                         client.Start();
                                         ob.Respond(client);
                                     },
-                                               onError: _ => ob.Respond(null));
+                                               onError: ob.OnError);
 
                 return sub.Dispose;
                 //return () =>
