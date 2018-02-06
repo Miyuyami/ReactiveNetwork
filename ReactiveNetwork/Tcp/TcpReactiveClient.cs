@@ -24,7 +24,7 @@ namespace ReactiveNetwork.Tcp
 
         protected internal TcpReactiveClient(TcpClient connectedTcpClient) : base()
         {
-            this.TcpClient = connectedTcpClient;
+            this.TcpClient = connectedTcpClient ?? throw new ArgumentNullException(nameof(connectedTcpClient));
             this.Socket = this.TcpClient.Client;
             this.NetworkStream = this.TcpClient.GetStream();
         }
@@ -94,9 +94,9 @@ namespace ReactiveNetwork.Tcp
 
         public override IObservable<ClientResult> Write(byte[] bytes) =>
             Observable.FromAsync(t => this.NetworkStream.WriteAsync(bytes, 0, bytes.Length, t))
-            .Select(_ => ClientResult.FromWrite(this, bytes, true))
-            .Timeout(this.SendTimeout)
-            .Catch<ClientResult, TimeoutException>(_ => Observable.Return(ClientResult.FromWrite(this, bytes, false)));
+                      .Select(_ => ClientResult.FromWrite(this, bytes, true))
+                      .Timeout(this.SendTimeout)
+                      .Catch<ClientResult, TimeoutException>(_ => Observable.Return(ClientResult.FromWrite(this, bytes, false)));
 
 
         public override void WriteWithoutReponse(byte[] bytes) =>
@@ -149,8 +149,8 @@ namespace ReactiveNetwork.Tcp
             this.DataReceivedConnectionDisposable?.Dispose();
         }
 
-        public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint targetIpEndPoint)
-            => CreateClientConnection(targetIpEndPoint.Address, targetIpEndPoint.Port);
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint ipEndPoint)
+            => CreateClientConnection(ipEndPoint.Address, ipEndPoint.Port);
 
         public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port) =>
             Observable.Create<TcpReactiveClient>(ob =>

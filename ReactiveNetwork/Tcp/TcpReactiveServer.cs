@@ -23,21 +23,41 @@ namespace ReactiveNetwork.Tcp
 
         public TcpReactiveServer(IPAddress address, int port) : base(address, port)
         {
+            if (address == null)
+            {
+                throw new ArgumentNullException(nameof(address));
+            }
+
             this.TcpListener = new TcpListener(address, port);
         }
 
         public TcpReactiveServer(IPAddress address, int port, string name) : base(address, port, name)
         {
+            if (address == null)
+            {
+                throw new ArgumentNullException(nameof(address));
+            }
+
             this.TcpListener = new TcpListener(address, port);
         }
 
         public TcpReactiveServer(IPEndPoint endPoint) : base(endPoint)
         {
+            if (endPoint == null)
+            {
+                throw new ArgumentNullException(nameof(endPoint));
+            }
+
             this.TcpListener = new TcpListener(endPoint);
         }
 
         public TcpReactiveServer(IPEndPoint endPoint, string name) : base(endPoint, name)
         {
+            if (endPoint == null)
+            {
+                throw new ArgumentNullException(nameof(endPoint));
+            }
+
             this.TcpListener = new TcpListener(endPoint);
         }
 
@@ -46,6 +66,7 @@ namespace ReactiveNetwork.Tcp
             Observable.Create<IReactiveClient>(ob =>
             {
                 SerialDisposable sub2 = new SerialDisposable();
+                SerialDisposable sub3 = new SerialDisposable();
                 var sub1 = this.WhenStatusChanged()
                                .Where(s => s == ServerStatus.Started)
                                .Subscribe(__ =>
@@ -54,22 +75,25 @@ namespace ReactiveNetwork.Tcp
                                                                       Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
                                                                .Subscribe(tcpClient =>
                                                                {
-                                                                   IReactiveClient client = this.CreateClient(tcpClient);
-                                                                   Guid guid;
-                                                                   do
-                                                                   {
-                                                                       guid = Guid.NewGuid();
-                                                                   } while (!this.Clients.TryAdd(guid, client));
+                                                                   sub3.Disposable = this.CreateClient(tcpClient)
+                                                                                         .Subscribe(client =>
+                                                                                         {
+                                                                                             Guid guid;
+                                                                                             do
+                                                                                             {
+                                                                                                 guid = Guid.NewGuid();
+                                                                                             } while (!this.Clients.TryAdd(guid, client));
 
-                                                                   client.WhenStatusChanged()
-                                                                         .Subscribe(___ => ob.OnNext(client));
+                                                                                             client.WhenStatusChanged()
+                                                                                                   .Subscribe(___ => ob.OnNext(client));
 
-                                                                   client.Start();
+                                                                                             client.Start();
 
-                                                                   // a TcpClient is not valid anymore after stopping
-                                                                   client.WhenStatusChanged()
-                                                                         .Where(s => s == ClientStatus.Stopped)
-                                                                         .Subscribe(___ => this.Clients.TryRemove(guid, out _));
+                                                                                             // a TcpClient is not valid anymore after stopping
+                                                                                             client.WhenStatusChanged()
+                                                                                                   .Where(s => s == ClientStatus.Stopped)
+                                                                                                   .Subscribe(___ => this.Clients.TryRemove(guid, out _));
+                                                                                         });
                                                                });
                                });
 
@@ -77,17 +101,18 @@ namespace ReactiveNetwork.Tcp
                 {
                     sub1.Dispose();
                     sub2.Dispose();
+                    sub3.Dispose();
                 };
             })
             .Publish()
             .RefCount();
 
-        protected virtual IReactiveClient CreateClient(TcpClient connectedTcpClient) =>
-            new TcpReactiveClient(connectedTcpClient)
+        protected virtual IObservable<IReactiveClient> CreateClient(TcpClient connectedTcpClient) =>
+            Observable.Return(new TcpReactiveClient(connectedTcpClient)
             {
                 ReceiveTimeout = this.ClientReceiveTimeout,
                 SendTimeout = this.ClientSendTimeout,
-            };
+            });
 
         protected override void InternalStart()
         {

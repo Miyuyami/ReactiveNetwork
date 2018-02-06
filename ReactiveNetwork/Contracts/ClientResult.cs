@@ -9,9 +9,9 @@
 
         private ClientResult(IReactiveClient client, ClientEvent eventType, byte[] data, bool success)
         {
-            this.Client = client;
+            this.Client = client ?? throw new System.ArgumentNullException(nameof(client));
             this.EventType = eventType;
-            this.Data = data;
+            this.Data = data ?? throw new System.ArgumentNullException(nameof(data));
             this.Success = success;
         }
 
