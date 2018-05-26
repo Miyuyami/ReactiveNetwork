@@ -45,7 +45,7 @@ namespace UnitTest
         public async Task TestWriteAndReceive()
         {
             byte[] bytes = new byte[] { 2, 3, 10, 8, 16 };
-            var serverClientTask = this.Server.WhenClientStatusChanged().Where(c => c.Status == ClientStatus.Started).Take(1).ToTask();
+            var serverClientTask = this.Server.WhenClientStatusChanged().Where(c => c.Status == RunStatus.Started).Take(1).ToTask();
             var client = await TcpReactiveClient.CreateClientConnection(IPAddress.Parse("127.0.0.1"), 10101);
             var serverClient = await serverClientTask;
             var receivedResultTask = serverClient.WhenDataReceived().Take(1).ToTask();

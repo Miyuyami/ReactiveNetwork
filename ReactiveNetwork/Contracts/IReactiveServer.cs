@@ -12,10 +12,10 @@ namespace ReactiveNetwork.Contracts
 
         string Name { get; }
 
-        ServerStatus Status { get; }
+        RunStatus Status { get; }
 
 
-        IObservable<ServerStatus> WhenStatusChanged();
+        IObservable<RunStatus> WhenStatusChanged();
 
         IObservable<IReactiveClient> WhenClientStatusChanged();
 

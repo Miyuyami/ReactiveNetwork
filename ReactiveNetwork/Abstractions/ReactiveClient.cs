@@ -7,16 +7,16 @@ namespace ReactiveNetwork.Abstractions
 {
     public abstract class ReactiveClient : IReactiveClient
     {
-        public ClientStatus Status { get; private set; }
+        public RunStatus Status { get; private set; }
 
         public ReactiveClient()
         {
 
         }
 
-        private Subject<ClientStatus> StatusSubject = new Subject<ClientStatus>();
-        private IObservable<ClientStatus> StatusChangedObservable;
-        public virtual IObservable<ClientStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
+        private Subject<RunStatus> StatusSubject = new Subject<RunStatus>();
+        private IObservable<RunStatus> StatusChangedObservable;
+        public virtual IObservable<RunStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
             this.StatusSubject
             .StartWith(this.Status)
             .DistinctUntilChanged()
@@ -25,34 +25,34 @@ namespace ReactiveNetwork.Abstractions
 
         public void Start()
         {
-            if (this.Status != ClientStatus.Stopped)
+            if (this.Status != RunStatus.Stopped)
             {
                 return;
             }
 
-            this.Status = ClientStatus.Starting;
-            this.StatusSubject.OnNext(ClientStatus.Starting);
+            this.Status = RunStatus.Starting;
+            this.StatusSubject.OnNext(RunStatus.Starting);
 
             this.InternalStart();
 
-            this.Status = ClientStatus.Started;
-            this.StatusSubject.OnNext(ClientStatus.Started);
+            this.Status = RunStatus.Started;
+            this.StatusSubject.OnNext(RunStatus.Started);
         }
 
         public void Stop()
         {
-            if (this.Status != ClientStatus.Started)
+            if (this.Status != RunStatus.Started)
             {
                 return;
             }
 
-            this.Status = ClientStatus.Stopping;
-            this.StatusSubject.OnNext(ClientStatus.Stopping);
+            this.Status = RunStatus.Stopping;
+            this.StatusSubject.OnNext(RunStatus.Stopping);
 
             this.InternalStop();
 
-            this.Status = ClientStatus.Stopped;
-            this.StatusSubject.OnNext(ClientStatus.Stopped);
+            this.Status = RunStatus.Stopped;
+            this.StatusSubject.OnNext(RunStatus.Stopped);
         }
 
         public abstract IObservable<ClientResult> WhenDataReceived();
