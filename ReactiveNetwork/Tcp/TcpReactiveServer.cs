@@ -76,10 +76,11 @@ namespace ReactiveNetwork.Tcp
                                                 this.CreateClient(tcpClient)
                                                     .Subscribe(onNext: client =>
                                                     {
-                                                        Guid guid = client.Guid;
-                                                        while (!this.Clients.TryAdd(guid, client))
+                                                        if (!this.Clients.TryAdd(client.Guid, client))
                                                         {
-                                                            client.Guid = guid = Guid.NewGuid();
+                                                            System.Diagnostics.Debug.Fail("this client already exists?? GUID collision?");
+                                                            client.Stop();
+                                                            return;
                                                         }
 
                                                         client.WhenStatusChanged()
@@ -90,7 +91,7 @@ namespace ReactiveNetwork.Tcp
                                                         // a TcpClient is not valid anymore after stopping
                                                         client.WhenStatusChanged()
                                                               .Where(s => s == RunStatus.Stopped)
-                                                              .Subscribe(___ => this.Clients.TryRemove(guid, out _));
+                                                              .Subscribe(___ => this.Clients.TryRemove(client.Guid, out _));
                                                     },
                                                     onError: e => SimpleLogger.Error(e));
                                             },
@@ -106,7 +107,7 @@ namespace ReactiveNetwork.Tcp
             .Publish()
             .RefCount();
 
-        protected virtual IObservable<ReactiveClient> CreateClient(TcpClient connectedTcpClient) =>
+        protected virtual IObservable<IReactiveClient> CreateClient(TcpClient connectedTcpClient) =>
             Observable.Return(new TcpReactiveClient(Guid.NewGuid(), connectedTcpClient)
             {
                 ReceiveTimeout = this.ClientReceiveTimeout,

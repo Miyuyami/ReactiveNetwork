@@ -7,7 +7,7 @@ namespace ReactiveNetwork.Abstractions
 {
     public abstract class ReactiveClient : IReactiveClient
     {
-        public Guid Guid { get; internal set; }
+        public Guid Guid { get; }
         public RunStatus Status { get; private set; }
 
         public ReactiveClient(Guid guid)
