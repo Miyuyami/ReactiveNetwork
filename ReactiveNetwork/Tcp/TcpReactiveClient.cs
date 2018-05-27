@@ -54,7 +54,7 @@ namespace ReactiveNetwork.Tcp
                {
                    SerialDisposable sub2 = new SerialDisposable();
                    var sub1 = this.WhenStatusChanged()
-                                  .Where(s => s == ClientStatus.Started)
+                                  .Where(s => s == RunStatus.Started)
                                   .Take(1) // ensure sub is only hit once
                                   .Subscribe(_ =>
                                   {

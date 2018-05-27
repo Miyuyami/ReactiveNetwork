@@ -1,6 +1,6 @@
 ﻿namespace ReactiveNetwork.Contracts
 {
-    public enum ClientStatus
+    public enum RunStatus
     {
         Stopped = 0,
         Stopping,

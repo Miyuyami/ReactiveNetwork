@@ -66,10 +66,10 @@ namespace ReactiveNetwork.Tcp
             Observable.Create<IReactiveClient>(ob =>
             {
                 var sub = this.WhenStatusChanged()
-                              .Where(s => s == ServerStatus.Started)
+                              .Where(s => s == RunStatus.Started)
                               .Subscribe(__ =>
                               {
-                                  Observable.While(() => this.Status == ServerStatus.Started,
+                                  Observable.While(() => this.Status == RunStatus.Started,
                                                    Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
                                             .Subscribe(onNext: tcpClient =>
                                             {
@@ -89,7 +89,7 @@ namespace ReactiveNetwork.Tcp
 
                                                         // a TcpClient is not valid anymore after stopping
                                                         client.WhenStatusChanged()
-                                                              .Where(s => s == ClientStatus.Stopped)
+                                                              .Where(s => s == RunStatus.Stopped)
                                                               .Subscribe(___ => this.Clients.TryRemove(guid, out _));
                                                     },
                                                     onError: e => SimpleLogger.Error(e));

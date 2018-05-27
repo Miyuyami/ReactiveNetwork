@@ -52,7 +52,7 @@ namespace UnitTest
                 new TcpClient().Connect(EndPoint);
                 Thread.Sleep(SleepTime);
                 var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == ClientStatus.Started)
+                           .Where(c => c.Status == RunStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
 
@@ -76,7 +76,7 @@ namespace UnitTest
                 s.Start();
                 Thread.Sleep(SleepTime);
                 var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == ClientStatus.Started)
+                           .Where(c => c.Status == RunStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
                 new TcpClient().Connect(EndPoint);
@@ -100,7 +100,7 @@ namespace UnitTest
             try
             {
                 var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == ClientStatus.Started)
+                           .Where(c => c.Status == RunStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
                 s.Start();
@@ -125,7 +125,7 @@ namespace UnitTest
             try
             {
                 var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == ClientStatus.Started)
+                           .Where(c => c.Status == RunStatus.Started)
                            .Subscribe(c => count++);
                 s.Start();
                 new TcpClient().Connect(EndPoint);
@@ -156,7 +156,7 @@ namespace UnitTest
             try
             {
                 var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == ClientStatus.Started)
+                           .Where(c => c.Status == RunStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
                 Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
@@ -206,7 +206,7 @@ namespace UnitTest
             try
             {
                 var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == ClientStatus.Started)
+                           .Where(c => c.Status == RunStatus.Started)
                            .Subscribe(c => count++);
                 Thread.Sleep(SleepTime);
                 s.Start();
@@ -261,9 +261,9 @@ namespace UnitTest
             try
             {
                 s.WhenClientStatusChanged()
-                 .Where(c => c.Status == ClientStatus.Started)
+                 .Where(c => c.Status == RunStatus.Started)
                  .Do(c => c.WhenStatusChanged()
-                           .Where(cs => cs == ClientStatus.Stopped)
+                           .Where(cs => cs == RunStatus.Stopped)
                            .Subscribe(_ => count--))
                  .Subscribe(_ => count++);
                 s.Start();
@@ -297,7 +297,7 @@ namespace UnitTest
                 Thread.Sleep(2000);
                 Assert.AreEqual(1, count);
                 Assert.AreEqual(count, s.ConnectedClients.Count);
-                Assert.IsTrue(s.ConnectedClients.All(kvp => kvp.Value.Status == ClientStatus.Started &&
+                Assert.IsTrue(s.ConnectedClients.All(kvp => kvp.Value.Status == RunStatus.Started &&
                                                             ((TcpReactiveClient)kvp.Value).IsConnected()));
             }
             finally

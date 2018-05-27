@@ -11,7 +11,7 @@ namespace ReactiveNetwork.Abstractions
     {
         public IPEndPoint EndPoint { get; }
         public string Name { get; }
-        public ServerStatus Status { get; private set; }
+        public RunStatus Status { get; private set; }
 
         public abstract IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
 
@@ -27,9 +27,9 @@ namespace ReactiveNetwork.Abstractions
             this.Name = name;
         }
 
-        private Subject<ServerStatus> StatusSubject = new Subject<ServerStatus>();
-        private IObservable<ServerStatus> StatusChangedObservable;
-        public virtual IObservable<ServerStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
+        private Subject<RunStatus> StatusSubject = new Subject<RunStatus>();
+        private IObservable<RunStatus> StatusChangedObservable;
+        public virtual IObservable<RunStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
             this.StatusSubject
             .StartWith(this.Status)
             .DistinctUntilChanged()
@@ -38,34 +38,34 @@ namespace ReactiveNetwork.Abstractions
 
         public void Start()
         {
-            if (this.Status != ServerStatus.Stopped)
+            if (this.Status != RunStatus.Stopped)
             {
                 return;
             }
 
-            this.Status = ServerStatus.Starting;
-            this.StatusSubject.OnNext(ServerStatus.Starting);
+            this.Status = RunStatus.Starting;
+            this.StatusSubject.OnNext(RunStatus.Starting);
 
             this.InternalStart();
 
-            this.Status = ServerStatus.Started;
-            this.StatusSubject.OnNext(ServerStatus.Started);
+            this.Status = RunStatus.Started;
+            this.StatusSubject.OnNext(RunStatus.Started);
         }
 
         public void Stop()
         {
-            if (this.Status != ServerStatus.Started)
+            if (this.Status != RunStatus.Started)
             {
                 return;
             }
 
-            this.Status = ServerStatus.Stopping;
-            this.StatusSubject.OnNext(ServerStatus.Stopping);
+            this.Status = RunStatus.Stopping;
+            this.StatusSubject.OnNext(RunStatus.Stopping);
 
             this.InternalStop();
 
-            this.Status = ServerStatus.Stopped;
-            this.StatusSubject.OnNext(ServerStatus.Stopped);
+            this.Status = RunStatus.Stopped;
+            this.StatusSubject.OnNext(RunStatus.Stopped);
         }
 
         public abstract IObservable<IReactiveClient> WhenClientStatusChanged();
