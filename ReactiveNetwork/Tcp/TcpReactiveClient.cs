@@ -22,7 +22,7 @@ namespace ReactiveNetwork.Tcp
         private const int _BufferLength = 1 << 20; // 1MiB
         private readonly byte[] _Buffer = new byte[_BufferLength];
 
-        protected internal TcpReactiveClient(TcpClient connectedTcpClient) : base()
+        protected internal TcpReactiveClient(Guid guid, TcpClient connectedTcpClient) : base(guid)
         {
             this.TcpClient = connectedTcpClient ?? throw new ArgumentNullException(nameof(connectedTcpClient));
             this.Socket = this.TcpClient.Client;
@@ -159,7 +159,7 @@ namespace ReactiveNetwork.Tcp
                 var sub = Observable.FromAsync(() => tcpClient.ConnectAsync(ipAddress, port))
                                     .Subscribe(onNext: _ =>
                                     {
-                                        var client = new TcpReactiveClient(tcpClient);
+                                        var client = new TcpReactiveClient(Guid.NewGuid(), tcpClient);
                                         client.Start();
                                         ob.Respond(client);
                                     },

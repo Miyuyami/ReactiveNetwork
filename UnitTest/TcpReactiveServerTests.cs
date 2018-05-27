@@ -1,12 +1,13 @@
-﻿using System;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ReactiveNetwork.Contracts;
+using ReactiveNetwork.Tcp;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
 using System.Threading;
-using ReactiveNetwork.Contracts;
-using ReactiveNetwork.Tcp;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace UnitTest
 {
@@ -299,6 +300,34 @@ namespace UnitTest
                 Assert.AreEqual(count, s.ConnectedClients.Count);
                 Assert.IsTrue(s.ConnectedClients.All(kvp => kvp.Value.Status == RunStatus.Started &&
                                                             ((TcpReactiveClient)kvp.Value).IsConnected()));
+            }
+            finally
+            {
+                s.Stop();
+            }
+        }
+
+        [TestMethod]
+        public void TestCheckGuidConsistency()
+        {
+            var s = new TcpReactiveServer(EndPoint);
+            try
+            {
+                HashSet<Guid> guids = new HashSet<Guid>();
+                var sub = s.WhenClientStatusChanged()
+                           .Where(c => c.Status == RunStatus.Started)
+                           .Subscribe(c => guids.Add(c.Guid));
+                s.Start();
+
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+                new TcpClient().Connect(EndPoint);
+
+                Thread.Sleep(5000);
+                Assert.AreEqual(3, s.ConnectedClients.Count);
+                Assert.AreEqual(s.ConnectedClients.Count, guids.Count);
+
+                Assert.IsTrue(guids.All(g => s.ConnectedClients.ContainsKey(g)));
             }
             finally
             {

@@ -76,11 +76,11 @@ namespace ReactiveNetwork.Tcp
                                                 this.CreateClient(tcpClient)
                                                     .Subscribe(onNext: client =>
                                                     {
-                                                        Guid guid;
-                                                        do
+                                                        Guid guid = client.Guid;
+                                                        while (!this.Clients.TryAdd(guid, client))
                                                         {
-                                                            guid = Guid.NewGuid();
-                                                        } while (!this.Clients.TryAdd(guid, client));
+                                                            client.Guid = guid = Guid.NewGuid();
+                                                        }
 
                                                         client.WhenStatusChanged()
                                                               .Subscribe(___ => ob.OnNext(client));
@@ -106,8 +106,8 @@ namespace ReactiveNetwork.Tcp
             .Publish()
             .RefCount();
 
-        protected virtual IObservable<IReactiveClient> CreateClient(TcpClient connectedTcpClient) =>
-            Observable.Return(new TcpReactiveClient(connectedTcpClient)
+        protected virtual IObservable<ReactiveClient> CreateClient(TcpClient connectedTcpClient) =>
+            Observable.Return(new TcpReactiveClient(Guid.NewGuid(), connectedTcpClient)
             {
                 ReceiveTimeout = this.ClientReceiveTimeout,
                 SendTimeout = this.ClientSendTimeout,

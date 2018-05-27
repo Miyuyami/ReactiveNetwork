@@ -4,8 +4,10 @@ namespace ReactiveNetwork.Contracts
 {
     public interface IReactiveClient
     {
+        Guid Guid { get; }
         RunStatus Status { get; }
-        
+
+
         IObservable<RunStatus> WhenStatusChanged();
 
         IObservable<ClientResult> WhenDataReceived();
