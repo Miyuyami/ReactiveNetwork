@@ -13,9 +13,15 @@ namespace ReactiveNetwork.Tcp
     public class TcpReactiveServer : ReactiveServer
     {
         private readonly TcpListener TcpListener;
+        private readonly Socket Socket;
 
         public virtual TimeSpan ClientReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
         public virtual TimeSpan ClientSendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+        public bool KeepAlive
+        {
+            get => (bool)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive);
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
+        }
 
         public override IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients => this.Clients;
 
@@ -29,6 +35,7 @@ namespace ReactiveNetwork.Tcp
             }
 
             this.TcpListener = new TcpListener(address, port);
+            this.Socket = this.TcpListener.Server;
         }
 
         public TcpReactiveServer(IPAddress address, int port, string name) : base(address, port, name)
@@ -39,6 +46,7 @@ namespace ReactiveNetwork.Tcp
             }
 
             this.TcpListener = new TcpListener(address, port);
+            this.Socket = this.TcpListener.Server;
         }
 
         public TcpReactiveServer(IPEndPoint endPoint) : base(endPoint)
@@ -49,6 +57,7 @@ namespace ReactiveNetwork.Tcp
             }
 
             this.TcpListener = new TcpListener(endPoint);
+            this.Socket = this.TcpListener.Server;
         }
 
         public TcpReactiveServer(IPEndPoint endPoint, string name) : base(endPoint, name)
@@ -59,6 +68,7 @@ namespace ReactiveNetwork.Tcp
             }
 
             this.TcpListener = new TcpListener(endPoint);
+            this.Socket = this.TcpListener.Server;
         }
 
         private IObservable<IReactiveClient> ClientStatusObservable;
