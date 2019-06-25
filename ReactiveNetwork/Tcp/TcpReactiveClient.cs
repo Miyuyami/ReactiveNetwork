@@ -14,6 +14,11 @@ namespace ReactiveNetwork.Tcp
         public virtual int RetryCount { get; set; } = 5;
         public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
         public virtual TimeSpan SendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+        public bool KeepAlive
+        {
+            get => (bool)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive);
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
+        }
 
         private readonly TcpClient TcpClient;
         private readonly Socket Socket;
