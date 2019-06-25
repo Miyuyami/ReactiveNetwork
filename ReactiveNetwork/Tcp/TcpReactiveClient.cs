@@ -86,7 +86,7 @@ namespace ReactiveNetwork.Tcp
 
         private IObservable<ClientResult> DataReceivedObservable;
         public override IObservable<ClientResult> WhenDataReceived() => this.DataReceivedObservable = this.DataReceivedObservable ??
-            this.DataReceivedConnectableObservable.RefCount();
+            this.DataReceivedConnectableObservable;
 
         public override IObservable<ClientResult> Read() =>
             this.WhenDataReceived()
