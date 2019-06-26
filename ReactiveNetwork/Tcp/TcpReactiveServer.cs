@@ -17,10 +17,39 @@ namespace ReactiveNetwork.Tcp
 
         public virtual TimeSpan ClientReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
         public virtual TimeSpan ClientSendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+
         public bool KeepAlive
         {
-            get => (bool)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive);
-            set => this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
+            get => (int)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive) != 0;
+            set => this.SetKeepAlive(active: value);
+        }
+
+        private TimeSpan _KeepAliveInterval = TimeSpan.FromSeconds(20d);
+        public TimeSpan KeepAliveInterval
+        {
+            get => this._KeepAliveInterval;
+            set
+            {
+                if (this._KeepAliveInterval != value)
+                {
+                    this._KeepAliveInterval = value;
+                    this.SetKeepAlive(interval: value);
+                }
+            }
+        }
+
+        private TimeSpan _KeepAliveTime = TimeSpan.FromSeconds(40d);
+        public TimeSpan KeepAliveTime
+        {
+            get => this._KeepAliveTime;
+            set
+            {
+                if (this._KeepAliveTime != value)
+                {
+                    this._KeepAliveTime = value;
+                    this.SetKeepAlive(time: value);
+                }
+            }
         }
 
         public override IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients => this.Clients;
@@ -140,5 +169,8 @@ namespace ReactiveNetwork.Tcp
 
             this.Clients.Clear();
         }
+
+        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null)
+            => this.Socket.SetKeepAlive(active ?? this.KeepAlive, interval ?? this.KeepAliveInterval, time ?? this.KeepAliveTime);
     }
 }
