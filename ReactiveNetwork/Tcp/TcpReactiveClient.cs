@@ -21,7 +21,7 @@ namespace ReactiveNetwork.Tcp
             set => this.SetKeepAlive(active: value);
         }
 
-        private TimeSpan _KeepAliveInterval = TimeSpan.FromSeconds(20d);
+        private TimeSpan _KeepAliveInterval;
         public TimeSpan KeepAliveInterval
         {
             get => this._KeepAliveInterval;
@@ -35,7 +35,7 @@ namespace ReactiveNetwork.Tcp
             }
         }
 
-        private TimeSpan _KeepAliveTime = TimeSpan.FromSeconds(40d);
+        private TimeSpan _KeepAliveTime;
         public TimeSpan KeepAliveTime
         {
             get => this._KeepAliveTime;
@@ -186,10 +186,15 @@ namespace ReactiveNetwork.Tcp
         public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint ipEndPoint)
             => CreateClientConnection(ipEndPoint.Address, ipEndPoint.Port);
 
-        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port) =>
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port)
+            => CreateClientConnection(ipAddress, port, false, TimeSpan.Zero, TimeSpan.Zero);
+
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool keepAlive, TimeSpan keepAliveInterval, TimeSpan keepAliveTime) =>
             Observable.Create<TcpReactiveClient>(ob =>
             {
                 var tcpClient = new TcpClient();
+                tcpClient.Client.SetKeepAlive(keepAlive, keepAliveInterval, keepAliveTime);
+
                 var sub = Observable.FromAsync(() => tcpClient.ConnectAsync(ipAddress, port))
                                     .Subscribe(onNext: _ =>
                                     {

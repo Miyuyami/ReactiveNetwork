@@ -24,7 +24,7 @@ namespace ReactiveNetwork.Tcp
             set => this.SetKeepAlive(active: value);
         }
 
-        private TimeSpan _KeepAliveInterval = TimeSpan.FromSeconds(20d);
+        private TimeSpan _KeepAliveInterval;
         public TimeSpan KeepAliveInterval
         {
             get => this._KeepAliveInterval;
@@ -38,7 +38,7 @@ namespace ReactiveNetwork.Tcp
             }
         }
 
-        private TimeSpan _KeepAliveTime = TimeSpan.FromSeconds(40d);
+        private TimeSpan _KeepAliveTime;
         public TimeSpan KeepAliveTime
         {
             get => this._KeepAliveTime;
