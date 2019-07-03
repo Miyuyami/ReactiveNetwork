@@ -133,8 +133,9 @@ namespace ReactiveNetwork.Tcp
                       .Catch<ClientResult, TimeoutException>(_ => Observable.Return(ClientResult.FromWrite(this, bytes, false)));
 
 
-        public override void WriteWithoutReponse(byte[] bytes) =>
-            this.Write(bytes);
+        public override void WriteWithoutResponse(byte[] bytes) =>
+            this.Write(bytes)
+                .Subscribe();
 
         public bool IsConnected()
         {

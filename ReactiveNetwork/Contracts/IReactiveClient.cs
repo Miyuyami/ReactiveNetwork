@@ -16,7 +16,7 @@ namespace ReactiveNetwork.Contracts
 
         IObservable<ClientResult> Write(byte[] bytes);
 
-        void WriteWithoutReponse(byte[] bytes);
+        void WriteWithoutResponse(byte[] bytes);
 
         void Start();
 

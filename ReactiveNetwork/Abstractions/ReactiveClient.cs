@@ -59,7 +59,7 @@ namespace ReactiveNetwork.Abstractions
         public abstract IObservable<ClientResult> WhenDataReceived();
         public abstract IObservable<ClientResult> Read();
         public abstract IObservable<ClientResult> Write(byte[] bytes);
-        public abstract void WriteWithoutReponse(byte[] bytes);
+        public abstract void WriteWithoutResponse(byte[] bytes);
 
         protected abstract void InternalStart();
         protected abstract void InternalStop();
