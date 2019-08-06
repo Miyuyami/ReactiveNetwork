@@ -130,8 +130,15 @@ namespace ReactiveNetwork.Tcp
             Observable.FromAsync(t => this.NetworkStream.WriteAsync(bytes, 0, bytes.Length, t))
                       .Select(_ => ClientResult.FromWrite(this, bytes, true))
                       .Timeout(this.SendTimeout)
-                      .Catch<ClientResult, TimeoutException>(_ => Observable.Return(ClientResult.FromWrite(this, bytes, false)));
+                      .Catch<ClientResult, TimeoutException>(_ => this.FailedClientResult(bytes))
+                      .Catch<ClientResult, Exception>(_ =>
+                      {
+                          this.StopIfNotConnected();
 
+                          return this.FailedClientResult(bytes);
+                      });
+
+        private IObservable<ClientResult> FailedClientResult(byte[] bytes) => Observable.Return(ClientResult.FromWrite(this, bytes, false));
 
         public override void WriteWithoutResponse(byte[] bytes) =>
             this.Write(bytes)
@@ -162,6 +169,14 @@ namespace ReactiveNetwork.Tcp
             }
 
             return false;
+        }
+
+        private void StopIfNotConnected()
+        {
+            if (!this.IsConnected())
+            {
+                this.Stop();
+            }
         }
 
         private bool HasEverStarted;
