@@ -7,7 +7,7 @@ namespace ReactiveNetwork
     public static class SocketExtensions
     {
         /// <summary>
-        ///     A structure used by SetKeepAliveEx Method
+        /// A structure used by SetKeepAliveEx Method
         /// </summary>
         [StructLayout(LayoutKind.Sequential)]
         internal struct TcpKeepAlive
@@ -18,7 +18,7 @@ namespace ReactiveNetwork
         };
 
         /// <summary>
-        ///     Sets the Keep-Alive values for the current tcp connection
+        /// Sets the Keep-Alive values for the current tcp connection
         /// </summary>
         /// <param name="socket">Current socket instance</param>
         /// <param name="active">True to activate, false to disable Keep-Alive.</param>
@@ -41,7 +41,7 @@ namespace ReactiveNetwork
             socket.IOControl(IOControlCode.KeepAliveValues, buffer, null);
         }
 
-        public static void SetKeepAlive(this Socket socket, bool active, TimeSpan keepAliveInterval, TimeSpan keepAliveTime)
-            => SetKeepAlive(socket, active, (uint)keepAliveInterval.TotalMilliseconds, (uint)keepAliveTime.TotalMilliseconds);
+        public static void SetKeepAlive(this Socket socket, bool active, TimeSpan keepAliveInterval, TimeSpan keepAliveTime) =>
+            SetKeepAlive(socket, active, (uint)keepAliveInterval.TotalMilliseconds, (uint)keepAliveTime.TotalMilliseconds);
     }
 }

@@ -52,13 +52,15 @@ namespace ReactiveNetwork.Tcp
             }
         }
 
-        public override IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients => this.Clients;
+        public override IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients =>
+            this.Clients;
 
-        private readonly ConcurrentDictionary<Guid, IReactiveClient> Clients = new ConcurrentDictionary<Guid, IReactiveClient>();
+        private readonly ConcurrentDictionary<Guid, IReactiveClient> Clients =
+            new ConcurrentDictionary<Guid, IReactiveClient>();
 
         public TcpReactiveServer(IPAddress address, int port) : base(address, port)
         {
-            if (address == null)
+            if (address is null)
             {
                 throw new ArgumentNullException(nameof(address));
             }
@@ -69,7 +71,7 @@ namespace ReactiveNetwork.Tcp
 
         public TcpReactiveServer(IPAddress address, int port, string name) : base(address, port, name)
         {
-            if (address == null)
+            if (address is null)
             {
                 throw new ArgumentNullException(nameof(address));
             }
@@ -80,7 +82,7 @@ namespace ReactiveNetwork.Tcp
 
         public TcpReactiveServer(IPEndPoint endPoint) : base(endPoint)
         {
-            if (endPoint == null)
+            if (endPoint is null)
             {
                 throw new ArgumentNullException(nameof(endPoint));
             }
@@ -91,7 +93,7 @@ namespace ReactiveNetwork.Tcp
 
         public TcpReactiveServer(IPEndPoint endPoint, string name) : base(endPoint, name)
         {
-            if (endPoint == null)
+            if (endPoint is null)
             {
                 throw new ArgumentNullException(nameof(endPoint));
             }
@@ -101,7 +103,7 @@ namespace ReactiveNetwork.Tcp
         }
 
         private IObservable<IReactiveClient> ClientStatusObservable;
-        public override IObservable<IReactiveClient> WhenClientStatusChanged() => this.ClientStatusObservable = this.ClientStatusObservable ??
+        public override IObservable<IReactiveClient> WhenClientStatusChanged() => this.ClientStatusObservable ??=
             Observable.Create<IReactiveClient>(ob =>
             {
                 var sub = this.WhenStatusChanged()
@@ -171,6 +173,8 @@ namespace ReactiveNetwork.Tcp
         }
 
         public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null)
-            => this.Socket.SetKeepAlive(active ?? this.KeepAlive, interval ?? this.KeepAliveInterval, time ?? this.KeepAliveTime);
+            => this.Socket.SetKeepAlive(active ?? this.KeepAlive,
+                                        interval ?? this.KeepAliveInterval,
+                                        time ?? this.KeepAliveTime);
     }
 }

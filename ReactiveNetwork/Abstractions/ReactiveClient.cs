@@ -10,19 +10,18 @@ namespace ReactiveNetwork.Abstractions
         public Guid Guid { get; }
         public RunStatus Status { get; private set; }
 
-        public ReactiveClient(Guid guid)
+        protected ReactiveClient(Guid guid)
         {
             this.Guid = guid;
         }
 
         private Subject<RunStatus> StatusSubject = new Subject<RunStatus>();
         private IObservable<RunStatus> StatusChangedObservable;
-        public virtual IObservable<RunStatus> WhenStatusChanged() => this.StatusChangedObservable = this.StatusChangedObservable ??
-            this.StatusSubject
-            .StartWith(this.Status)
-            .DistinctUntilChanged()
-            .Replay(1)
-            .RefCount();
+        public virtual IObservable<RunStatus> WhenStatusChanged() => this.StatusChangedObservable ??=
+            this.StatusSubject.StartWith(this.Status)
+                              .DistinctUntilChanged()
+                              .Replay(1)
+                              .RefCount();
 
         public void Start()
         {

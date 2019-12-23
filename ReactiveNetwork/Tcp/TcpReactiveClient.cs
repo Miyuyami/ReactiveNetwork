@@ -119,7 +119,7 @@ namespace ReactiveNetwork.Tcp
         }
 
         private IObservable<ClientResult> DataReceivedObservable;
-        public override IObservable<ClientResult> WhenDataReceived() => this.DataReceivedObservable = this.DataReceivedObservable ??
+        public override IObservable<ClientResult> WhenDataReceived() => this.DataReceivedObservable ??=
             this.DataReceivedConnectableObservable;
 
         public override IObservable<ClientResult> Read() =>
@@ -138,7 +138,8 @@ namespace ReactiveNetwork.Tcp
                           return this.FailedClientResult(bytes);
                       });
 
-        private IObservable<ClientResult> FailedClientResult(byte[] bytes) => Observable.Return(ClientResult.FromWrite(this, bytes, false));
+        private IObservable<ClientResult> FailedClientResult(byte[] bytes) =>
+            Observable.Return(ClientResult.FromWrite(this, bytes, false));
 
         public override void WriteWithoutResponse(byte[] bytes) =>
             this.Write(bytes)
@@ -212,13 +213,14 @@ namespace ReactiveNetwork.Tcp
                 tcpClient.Client.SetKeepAlive(keepAlive, keepAliveInterval, keepAliveTime);
 
                 var sub = Observable.FromAsync(() => tcpClient.ConnectAsync(ipAddress, port))
-                                    .Subscribe(onNext: _ =>
+                                    .Subscribe(
+                                    onNext: _ =>
                                     {
                                         var client = new TcpReactiveClient(Guid.NewGuid(), tcpClient);
                                         client.Start();
                                         ob.Respond(client);
                                     },
-                                               onError: ob.OnError);
+                                    onError: ob.OnError);
 
                 return sub.Dispose;
                 //return () =>
