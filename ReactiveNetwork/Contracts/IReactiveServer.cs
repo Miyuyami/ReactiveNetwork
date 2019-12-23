@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Net;
 
 namespace ReactiveNetwork.Contracts
 {
     public interface IReactiveServer
     {
-        IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
+        ConcurrentDictionary<Guid, IReactiveClient> ConnectedClients { get; }
 
         IPEndPoint EndPoint { get; }
 

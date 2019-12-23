@@ -15,6 +15,8 @@ namespace ReactiveNetwork.Tcp
         public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
         public virtual TimeSpan SendTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
+        protected override bool CanOnlyStartOnce => true;
+
         public bool KeepAlive
         {
             get => (int)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive) != 0;
@@ -180,15 +182,9 @@ namespace ReactiveNetwork.Tcp
             }
         }
 
-        private bool HasEverStarted;
         protected override void InternalStart()
         {
-            if (this.HasEverStarted)
-            {
-                throw new InvalidOperationException($"{nameof(TcpReactiveClient)} cannot be started again after being stopped.");
-            }
-
-            this.HasEverStarted = true;
+            base.InternalStart();
 
             this.InitDataReceived();
         }
@@ -198,6 +194,8 @@ namespace ReactiveNetwork.Tcp
             this.TcpClient.Close();
 
             this.DataReceivedConnectionDisposable?.Dispose();
+
+            base.InternalStop();
         }
 
         public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint ipEndPoint)

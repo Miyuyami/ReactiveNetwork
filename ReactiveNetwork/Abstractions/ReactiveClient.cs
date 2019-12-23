@@ -10,6 +10,9 @@ namespace ReactiveNetwork.Abstractions
         public Guid Guid { get; }
         public RunStatus Status { get; private set; }
 
+        protected virtual bool CanOnlyStartOnce { get; } = false;
+        protected bool HasEverStarted { get; set; } = false;
+
         protected ReactiveClient(Guid guid)
         {
             this.Guid = guid;
@@ -25,6 +28,16 @@ namespace ReactiveNetwork.Abstractions
 
         public void Start()
         {
+            if (this.CanOnlyStartOnce)
+            {
+                if (this.HasEverStarted)
+                {
+                    throw new InvalidOperationException($"{this.GetType().Name} cannot be started again after being stopped.");
+                }
+
+                this.HasEverStarted = true;
+            }
+
             if (this.Status != RunStatus.Stopped)
             {
                 return;
@@ -53,14 +66,26 @@ namespace ReactiveNetwork.Abstractions
 
             this.Status = RunStatus.Stopped;
             this.StatusSubject.OnNext(RunStatus.Stopped);
+
+            if (this.CanOnlyStartOnce)
+            {
+                this.StatusSubject.OnCompleted();
+            }
+        }
+
+        protected virtual void InternalStart()
+        {
+
+        }
+
+        protected virtual void InternalStop()
+        {
+
         }
 
         public abstract IObservable<ClientResult> WhenDataReceived();
         public abstract IObservable<ClientResult> Read();
         public abstract IObservable<ClientResult> Write(byte[] bytes);
         public abstract void WriteWithoutResponse(byte[] bytes);
-
-        protected abstract void InternalStart();
-        protected abstract void InternalStop();
     }
 }

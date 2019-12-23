@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -13,7 +13,11 @@ namespace ReactiveNetwork.Abstractions
         public string Name { get; }
         public RunStatus Status { get; private set; }
 
-        public abstract IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients { get; }
+        protected virtual bool CanOnlyStartOnce { get; } = false;
+        protected bool HasEverStarted { get; set; } = false;
+
+        public virtual ConcurrentDictionary<Guid, IReactiveClient> ConnectedClients { get; }
+            = new ConcurrentDictionary<Guid, IReactiveClient>();
 
         protected ReactiveServer(IPAddress address, int port) : this(new IPEndPoint(address, port)) { }
 
@@ -37,6 +41,16 @@ namespace ReactiveNetwork.Abstractions
 
         public void Start()
         {
+            if (this.CanOnlyStartOnce)
+            {
+                if (this.HasEverStarted)
+                {
+                    throw new InvalidOperationException($"{this.GetType().Name} cannot be started again after being stopped.");
+                }
+
+                this.HasEverStarted = true;
+            }
+
             if (this.Status != RunStatus.Stopped)
             {
                 return;
@@ -65,11 +79,28 @@ namespace ReactiveNetwork.Abstractions
 
             this.Status = RunStatus.Stopped;
             this.StatusSubject.OnNext(RunStatus.Stopped);
+
+            if (this.CanOnlyStartOnce)
+            {
+                this.StatusSubject.OnCompleted();
+            }
+        }
+
+        protected virtual void InternalStart()
+        {
+
+        }
+
+        protected virtual void InternalStop()
+        {
+            foreach (var client in this.ConnectedClients.Values)
+            {
+                client.Stop();
+            }
+
+            this.ConnectedClients.Clear();
         }
 
         public abstract IObservable<IReactiveClient> WhenClientStatusChanged();
-
-        protected abstract void InternalStart();
-        protected abstract void InternalStop();
     }
 }

@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -51,12 +49,6 @@ namespace ReactiveNetwork.Tcp
                 }
             }
         }
-
-        public override IReadOnlyDictionary<Guid, IReactiveClient> ConnectedClients =>
-            this.Clients;
-
-        private readonly ConcurrentDictionary<Guid, IReactiveClient> Clients =
-            new ConcurrentDictionary<Guid, IReactiveClient>();
 
         public TcpReactiveServer(IPAddress address, int port) : base(address, port)
         {
@@ -117,7 +109,7 @@ namespace ReactiveNetwork.Tcp
                                                 this.CreateClient(tcpClient)
                                                     .Subscribe(onNext: client =>
                                                     {
-                                                        if (!this.Clients.TryAdd(client.Guid, client))
+                                                        if (!this.ConnectedClients.TryAdd(client.Guid, client))
                                                         {
                                                             System.Diagnostics.Debug.Fail("this client already exists?? GUID collision?");
                                                             client.Stop();
@@ -132,7 +124,7 @@ namespace ReactiveNetwork.Tcp
                                                         // a TcpClient is not valid anymore after stopping
                                                         client.WhenStatusChanged()
                                                               .Where(s => s == RunStatus.Stopped)
-                                                              .Subscribe(___ => this.Clients.TryRemove(client.Guid, out _));
+                                                              .Subscribe(___ => this.ConnectedClients.TryRemove(client.Guid, out _));
                                                     },
                                                     onError: e => SimpleLogger.Error(e));
                                             },
@@ -157,6 +149,8 @@ namespace ReactiveNetwork.Tcp
 
         protected override void InternalStart()
         {
+            base.InternalStart();
+
             this.TcpListener.Start();
         }
 
@@ -164,12 +158,7 @@ namespace ReactiveNetwork.Tcp
         {
             this.TcpListener.Stop();
 
-            foreach (var client in this.Clients.Values)
-            {
-                client.Stop();
-            }
-
-            this.Clients.Clear();
+            base.InternalStop();
         }
 
         public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null)
