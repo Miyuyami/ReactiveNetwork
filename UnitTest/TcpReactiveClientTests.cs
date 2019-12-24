@@ -6,7 +6,6 @@ using System.Reactive.Linq;
 using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using MiscUtils.Logging;
 using ReactiveNetwork.Contracts;
 using ReactiveNetwork.Tcp;
 
@@ -24,8 +23,6 @@ namespace UnitTest
         [TestInitialize]
         public void InitilizeServer()
         {
-            SimpleLogger.Out = (format, args) => Console.WriteLine(format);
-
             this.Server = new TcpReactiveServer(EndPoint);
             this.Server.Start();
         }

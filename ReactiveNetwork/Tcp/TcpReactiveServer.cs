@@ -2,7 +2,6 @@
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
-using MiscUtils.Logging;
 using ReactiveNetwork.Abstractions;
 using ReactiveNetwork.Contracts;
 
@@ -126,9 +125,9 @@ namespace ReactiveNetwork.Tcp
                                                               .Where(s => s == RunStatus.Stopped)
                                                               .Subscribe(___ => this.ConnectedClients.TryRemove(client.Guid, out _));
                                                     },
-                                                    onError: e => SimpleLogger.Error(e));
+                                                    onError: ob.OnError);
                                             },
-                                            onError: e => SimpleLogger.Error(e));
+                                            onError: ob.OnError);
                               });
 
                 return sub.Dispose;

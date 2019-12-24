@@ -17,8 +17,4 @@
     <PackageReference Include="System.Reactive" Version="4.1.5" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\MiscUtils\MiscUtils\MiscUtils.csproj" />
-  </ItemGroup>
-
 </Project>
