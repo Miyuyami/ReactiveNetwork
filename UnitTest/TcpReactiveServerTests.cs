@@ -14,9 +14,9 @@ namespace UnitTest
     [TestClass]
     public class TcpReactiveServerTests
     {
-        static IPAddress IPAddress = IPAddress.Parse("127.0.0.1");
-        const int Port = 12345;
-        static IPEndPoint EndPoint = new IPEndPoint(IPAddress, Port);
+        private static readonly IPAddress IpAddress = IPAddress.Parse("127.0.0.1");
+        private const int Port = 10102;
+        private static readonly IPEndPoint EndPoint = new IPEndPoint(IpAddress, Port);
         static int SleepTime = 1000;
 
         [TestMethod]

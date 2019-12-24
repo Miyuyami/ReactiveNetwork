@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Reactive.Disposables;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ReactiveNetwork.Abstractions;
@@ -12,6 +12,7 @@ namespace ReactiveNetwork.Tcp
     public class TcpReactiveClient : ReactiveClient
     {
         public virtual int RetryCount { get; set; } = 5;
+        public virtual TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(2d);
         public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
         public virtual TimeSpan SendTimeout { get; set; } = TimeSpan.FromMinutes(1);
 
@@ -65,20 +66,34 @@ namespace ReactiveNetwork.Tcp
             this.NetworkStream = this.TcpClient.GetStream();
         }
 
-        private IObservable<int> NetworkStreamReadObservable(IObserver<ClientResult> ob) =>
-            Observable.FromAsync(t => this.NetworkStream.ReadAsync(this._Buffer, 0, _BufferLength, t))
-                      .Timeout(this.ReceiveTimeout)
-                      .Catch<int, ObjectDisposedException>(_ =>
-                      {
-                          ob.OnCompleted();
-                          return Observable.Return(-1);
-                      })
-                      .Catch<int, TimeoutException>(_ =>
-                      {
-                          ob.OnCompleted();
-                          return Observable.Return(-1);
-                      })
-                      .Retry(this.RetryCount);
+        private IObservable<int> NetworkStreamReadObservable()
+        {
+            int retryCount = this.RetryCount;
+
+            return
+                Observable.FromAsync(t => this.NetworkStream.ReadAsync(this._Buffer, 0, _BufferLength, t))
+                          .Timeout(this.ReceiveTimeout)
+                          .RetryWhen(exOb => exOb.SelectMany(ex =>
+                          {
+                              if (retryCount <= 0)
+                              {
+                                  return Observable.Throw<Unit>(ex);
+                              }
+
+                              if (ex is ObjectDisposedException)
+                              {
+                                  return Observable.Throw<Unit>(ex);
+                              }
+
+                              if (ex is TimeoutException)
+                              {
+                                  return Observable.Throw<Unit>(ex);
+                              }
+
+                              retryCount--;
+                              return Observable.Return(Unit.Default).Delay(this.RetryDelay);
+                          }));
+        }
 
         private IConnectableObservable<ClientResult> DataReceivedConnectableObservable;
         private IDisposable DataReceivedConnectionDisposable;
@@ -86,36 +101,19 @@ namespace ReactiveNetwork.Tcp
         private void InitDataReceived()
         {
             this.DataReceivedConnectableObservable =
-               Observable.Create<ClientResult>(ob =>
-               {
-                   SerialDisposable sub2 = new SerialDisposable();
-                   var sub1 = this.WhenStatusChanged()
-                                  .Where(s => s == RunStatus.Started)
-                                  .Take(1) // ensure sub is only hit once
-                                  .Subscribe(_ =>
-                                  {
-                                      sub2.Disposable = Observable.While(() => this.IsConnected(), this.NetworkStreamReadObservable(ob))
-                                                                  .Subscribe(
-                                                                  onNext: receivedBytes =>
-                                                                  {
-                                                                      if (receivedBytes > 0)
-                                                                      {
-                                                                          byte[] readBytes = new byte[receivedBytes];
-                                                                          Buffer.BlockCopy(this._Buffer, 0, readBytes, 0, receivedBytes);
-                                                                          ob.OnNext(ClientResult.FromRead(this, readBytes));
-                                                                      }
-                                                                  },
-                                                                  onCompleted: ob.OnCompleted);
-                                  });
-
-                   return () =>
-                   {
-                       sub1.Dispose();
-                       sub2.Dispose();
-                   };
-               })
-               .Finally(() => this.Stop())
-               .Publish();
+                this.WhenStatusChanged()
+                    .Where(s => s == RunStatus.Started)
+                    .Take(1) // we can only start once
+                    .SelectMany(Observable.While(() => this.IsConnected(), this.NetworkStreamReadObservable()))
+                    .Where(i => i > 0)
+                    .Select(receivedBytes =>
+                    {
+                        byte[] readBytes = new byte[receivedBytes];
+                        Buffer.BlockCopy(this._Buffer, 0, readBytes, 0, receivedBytes);
+                        return ClientResult.FromRead(this, readBytes);
+                    })
+                    .Finally(() => this.Stop())
+                    .Publish();
 
             this.DataReceivedConnectionDisposable = this.DataReceivedConnectableObservable.Connect();
         }
@@ -198,34 +196,31 @@ namespace ReactiveNetwork.Tcp
             base.InternalStop();
         }
 
-        public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint ipEndPoint)
-            => CreateClientConnection(ipEndPoint.Address, ipEndPoint.Port);
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPEndPoint ipEndPoint, bool startClient = true)
+            => CreateClientConnection(ipEndPoint.Address, ipEndPoint.Port, startClient);
 
-        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port)
-            => CreateClientConnection(ipAddress, port, false, TimeSpan.Zero, TimeSpan.Zero);
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool startClient = true)
+            => CreateClientConnection(ipAddress, port, startClient, false, TimeSpan.Zero, TimeSpan.Zero);
 
-        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool keepAlive, TimeSpan keepAliveInterval, TimeSpan keepAliveTime) =>
-            Observable.Create<TcpReactiveClient>(ob =>
-            {
-                var tcpClient = new TcpClient();
-                tcpClient.Client.SetKeepAlive(keepAlive, keepAliveInterval, keepAliveTime);
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool startClient, bool keepAlive, TimeSpan keepAliveInterval, TimeSpan keepAliveTime) =>
+            Observable.FromAsync(async () =>
+                      {
+                          var tcpClient = new TcpClient();
+                          tcpClient.Client.SetKeepAlive(keepAlive, keepAliveInterval, keepAliveTime);
 
-                var sub = Observable.FromAsync(() => tcpClient.ConnectAsync(ipAddress, port))
-                                    .Subscribe(
-                                    onNext: _ =>
-                                    {
-                                        var client = new TcpReactiveClient(Guid.NewGuid(), tcpClient);
-                                        client.Start();
-                                        ob.Respond(client);
-                                    },
-                                    onError: ob.OnError);
+                          await tcpClient.ConnectAsync(ipAddress, port);
+                          return tcpClient;
+                      })
+                      .Select(c =>
+                      {
+                          var client = new TcpReactiveClient(Guid.NewGuid(), c);
+                          if (startClient)
+                          {
+                              client.Start();
+                          }
 
-                return sub.Dispose;
-                //return () =>
-                //{
-                //    sub.Dispose();
-                //};
-            });
+                          return client;
+                      });
 
         public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null)
             => this.Socket.SetKeepAlive(active ?? this.KeepAlive, interval ?? this.KeepAliveInterval, time ?? this.KeepAliveTime);
