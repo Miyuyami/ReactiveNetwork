@@ -222,7 +222,7 @@ namespace ReactiveNetwork.Tcp
                           return client;
                       });
 
-        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null)
-            => this.Socket.SetKeepAlive(active ?? this.KeepAlive, interval ?? this.KeepAliveInterval, time ?? this.KeepAliveTime);
+        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null) =>
+            this.Socket.SetKeepAlive(active ?? this.KeepAlive, interval ?? this.KeepAliveInterval, time ?? this.KeepAliveTime);
     }
 }

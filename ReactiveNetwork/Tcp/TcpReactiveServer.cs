@@ -99,35 +99,27 @@ namespace ReactiveNetwork.Tcp
             {
                 var sub = this.WhenStatusChanged()
                               .Where(s => s == RunStatus.Started)
-                              .Subscribe(__ =>
+                              .SelectMany(Observable.While(() => this.Status == RunStatus.Started,
+                                                           Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync)))
+                              .SelectMany(this.CreateClient)
+                              .Subscribe(client =>
                               {
-                                  Observable.While(() => this.Status == RunStatus.Started,
-                                                   Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync))
-                                            .Subscribe(onNext: tcpClient =>
-                                            {
-                                                this.CreateClient(tcpClient)
-                                                    .Subscribe(onNext: client =>
-                                                    {
-                                                        if (!this.ConnectedClients.TryAdd(client.Guid, client))
-                                                        {
-                                                            System.Diagnostics.Debug.Fail("this client already exists?? GUID collision?");
-                                                            client.Stop();
-                                                            return;
-                                                        }
+                                  if (!this.ConnectedClients.TryAdd(client.Guid, client))
+                                  {
+                                      System.Diagnostics.Debug.Fail("client already exists? GUID collision?");
+                                      client.Stop();
+                                      return;
+                                  }
 
-                                                        client.WhenStatusChanged()
-                                                              .Subscribe(___ => ob.OnNext(client));
+                                  client.WhenStatusChanged()
+                                        .Subscribe(_ => ob.OnNext(client));
 
-                                                        client.Start();
+                                  client.Start();
 
-                                                        // a TcpClient is not valid anymore after stopping
-                                                        client.WhenStatusChanged()
-                                                              .Where(s => s == RunStatus.Stopped)
-                                                              .Subscribe(___ => this.ConnectedClients.TryRemove(client.Guid, out _));
-                                                    },
-                                                    onError: ob.OnError);
-                                            },
-                                            onError: ob.OnError);
+                                  // a client is not longer valid after stopping
+                                  client.WhenStatusChanged()
+                                        .Where(s => s == RunStatus.Stopped)
+                                        .Subscribe(__ => this.ConnectedClients.TryRemove(client.Guid, out _));
                               });
 
                 return sub.Dispose;
@@ -160,9 +152,9 @@ namespace ReactiveNetwork.Tcp
             base.InternalStop();
         }
 
-        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null)
-            => this.Socket.SetKeepAlive(active ?? this.KeepAlive,
-                                        interval ?? this.KeepAliveInterval,
-                                        time ?? this.KeepAliveTime);
+        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null) =>
+            this.Socket.SetKeepAlive(active ?? this.KeepAlive,
+                                     interval ?? this.KeepAliveInterval,
+                                     time ?? this.KeepAliveTime);
     }
 }
