@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -21,14 +20,14 @@ namespace UnitTest
         private TcpReactiveServer Server;
 
         [TestInitialize]
-        public void InitilizeServer()
+        public void TestInitialize()
         {
             this.Server = new TcpReactiveServer(EndPoint);
             this.Server.Start();
         }
 
         [TestCleanup]
-        public void CleanupServer()
+        public void TestCleanup()
         {
             this.Server.Stop();
         }
@@ -88,7 +87,7 @@ namespace UnitTest
         public async Task TestClientStopOnServerStop()
         {
             var client = await TcpReactiveClient.CreateClientConnection(EndPoint);
-            var whenClientStoppedTask = 
+            var whenClientStoppedTask =
                 client.WhenStatusChanged()
                       .Where(rs => rs == RunStatus.Stopped)
                       .ToTask();

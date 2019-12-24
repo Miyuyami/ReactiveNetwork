@@ -1,13 +1,14 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ReactiveNetwork.Contracts;
-using ReactiveNetwork.Tcp;
-using System;
-using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
-using System.Threading;
+using System.Reactive.Threading.Tasks;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using ReactiveNetwork.Contracts;
+using ReactiveNetwork.Tcp;
 
 namespace UnitTest
 {
@@ -17,322 +18,376 @@ namespace UnitTest
         private static readonly IPAddress IpAddress = IPAddress.Parse("127.0.0.1");
         private const int Port = 10102;
         private static readonly IPEndPoint EndPoint = new IPEndPoint(IpAddress, Port);
-        static int SleepTime = 1000;
 
-        [TestMethod]
-        public void TestAllWithNoSleep()
+        private TcpReactiveServer Server;
+
+        private ConcurrentBag<TcpClient> Clients;
+
+        [TestInitialize]
+        public void TestInitialize()
         {
-            int prevSleepTime = SleepTime;
-            SleepTime = 0;
+            this.Server = new TcpReactiveServer(EndPoint);
 
-            try
+            this.Clients = new ConcurrentBag<TcpClient>();
+        }
+
+        [TestCleanup]
+        public void TestCleanup()
+        {
+            this.Server.Stop();
+
+            while (this.Clients.Count > 0)
             {
-                this.TestConnectBeforeSub();
-                this.TestConnectAfterSub();
-                this.TestSubBeforeStartConnectAfterSub();
-                this.TestMultipleConnect();
-                this.TestStop();
-                this.TestRestartConnect();
-            }
-            finally
-            {
-                SleepTime = prevSleepTime;
+                if (this.Clients.TryTake(out TcpClient c))
+                {
+                    c.Close();
+                }
             }
         }
 
-        [TestMethod]
-        public void TestConnectBeforeSub()
+        public async Task<TcpClient> ConnectClientAsync(IPEndPoint endPoint = null)
         {
-            int count = 0;
-
-            var s = new TcpReactiveServer(EndPoint, "");
-            try
+            if (endPoint is null)
             {
-                s.Start();
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(SleepTime);
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => count++);
-                Thread.Sleep(SleepTime);
+                endPoint = EndPoint;
+            }
 
-                Thread.Sleep(1000);
-                Assert.AreEqual(1, count);
-            }
-            finally
-            {
-                s.Stop();
-            }
+            var c = new TcpClient();
+            this.Clients.Add(c);
+            await c.ConnectAsync(endPoint.Address, endPoint.Port);
+            return c;
         }
 
         [TestMethod]
-        public void TestConnectAfterSub()
+        public async Task TestConnectBeforeSub()
         {
-            int count = 0;
+            const int take = 1;
 
-            var s = new TcpReactiveServer(EndPoint, "");
-            try
-            {
-                s.Start();
-                Thread.Sleep(SleepTime);
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => count++);
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(SleepTime);
+            this.Server.Start();
+            await this.ConnectClientAsync();
 
-                Thread.Sleep(1000);
-                Assert.AreEqual(1, count);
-            }
-            finally
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
+
+            await Task.WhenAny(Task.Delay(2000), t);
+            if (!t.IsCompleted)
             {
-                s.Stop();
+                Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
             }
+
+            Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
         [TestMethod]
-        public void TestSubBeforeStartConnectAfterSub()
+        public async Task TestConnectAfterSub()
         {
-            int count = 0;
+            const int take = 1;
 
-            var s = new TcpReactiveServer(EndPoint, "");
-            try
-            {
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => count++);
-                Thread.Sleep(SleepTime);
-                s.Start();
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(SleepTime);
+            this.Server.Start();
 
-                Thread.Sleep(1000);
-                Assert.AreEqual(1, count);
-            }
-            finally
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
+
+            await this.ConnectClientAsync();
+
+            await Task.WhenAny(Task.Delay(2000), t);
+            if (!t.IsCompleted)
             {
-                s.Stop();
+                Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
             }
+
+            Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
         [TestMethod]
-        public void TestMultipleConnect()
+        public async Task TestSubBeforeStartConnectAfterSub()
         {
-            int count = 0;
+            const int take = 1;
 
-            var s = new TcpReactiveServer(EndPoint, "");
-            try
-            {
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => count++);
-                s.Start();
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
 
-                Thread.Sleep(10000);
-                Assert.AreEqual(8, count);
-            }
-            finally
+            this.Server.Start();
+            await this.ConnectClientAsync();
+
+            await Task.WhenAny(Task.Delay(2000), t);
+            if (!t.IsCompleted)
             {
-                s.Stop();
+                Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
             }
+
+            Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
         [TestMethod]
-        public void TestStop()
+        public async Task TestMultipleConnect()
         {
-            int count = 0;
+            const int take = 8;
 
-            var s = new TcpReactiveServer(EndPoint, "");
-            try
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
+            this.Server.Start();
+            var tasks = new[]
             {
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => count++);
-                Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(5000);
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(2000);
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
-
-                Thread.Sleep(2000);
-                Assert.AreEqual(5, count);
-            }
-            finally
-            {
-                s.Stop();
-            }
-        }
-
-        [TestMethod]
-        public void TestRestartConnect()
-        {
-            int count = 0;
-
-            var s = new TcpReactiveServer(EndPoint, "");
-            try
-            {
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => count++);
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(100);
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(100);
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
-                Thread.Sleep(100);
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                s.Stop();
-                Thread.Sleep(SleepTime);
-                s.Start();
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(SleepTime);
-                new TcpClient().Connect(EndPoint);
-
-                Thread.Sleep(2000);
-                Assert.AreEqual(4, count);
-            }
-            finally
-            {
-                s.Stop();
-            }
-        }
-
-        [TestMethod]
-        public void TestCheckClientList()
-        {
-            int count = 0;
-
-            var s = new TcpReactiveServer(EndPoint, "")
-            {
-                ClientReceiveTimeout = TimeSpan.FromSeconds(5),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
             };
-            try
+
+            await Task.WhenAll(tasks);
+            await Task.WhenAny(Task.Delay(20000), t);
+            if (!t.IsCompleted)
             {
-                s.WhenClientStatusChanged()
-                 .Where(c => c.Status == RunStatus.Started)
-                 .Do(c => c.WhenStatusChanged()
-                           .Where(cs => cs == RunStatus.Stopped)
-                           .Subscribe(_ => count--))
-                 .Subscribe(_ => count++);
-                s.Start();
-
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(10000);
-
-                s.Stop();
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
-                Assert.ThrowsException<SocketException>(() => new TcpClient().Connect(EndPoint));
-                Thread.Sleep(100);
-                s.Start();
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                Thread.Sleep(10000);
-                Assert.AreEqual(0, s.ConnectedClients.Count); // all timed-out
-
-                var client1 = new TcpClient();
-                var client2 = new TcpClient();
-                var client3 = new TcpClient();
-                client1.Connect(EndPoint);
-                client2.Connect(EndPoint);
-                client3.Connect(EndPoint);
-                client3.Close();
-                client1.Close();
-
-                Thread.Sleep(2000);
-                Assert.AreEqual(1, count);
-                Assert.AreEqual(count, s.ConnectedClients.Count);
-                Assert.IsTrue(s.ConnectedClients.All(kvp => kvp.Value.Status == RunStatus.Started &&
-                                                            ((TcpReactiveClient)kvp.Value).IsConnected()));
+                Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
             }
-            finally
-            {
-                s.Stop();
-            }
+
+            Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
         [TestMethod]
-        public void TestCheckGuidConsistency()
+        public async Task TestStop()
         {
-            var s = new TcpReactiveServer(EndPoint);
-            try
+            const int take = 6;
+            const int failed = 3;
+
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
+            await Assert.ThrowsExceptionAsync<SocketException>(() => this.ConnectClientAsync());
+            this.Server.Start();
+            var t2 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(4)
+                                .ToTask();
+            var tasks = new[]
             {
-                HashSet<Guid> guids = new HashSet<Guid>();
-                var sub = s.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .Subscribe(c => guids.Add(c.Guid));
-                s.Start();
-
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-                new TcpClient().Connect(EndPoint);
-
-                Thread.Sleep(5000);
-                Assert.AreEqual(3, s.ConnectedClients.Count);
-                Assert.AreEqual(s.ConnectedClients.Count, guids.Count);
-
-                Assert.IsTrue(guids.All(g => s.ConnectedClients.ContainsKey(g)));
-            }
-            finally
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+            };
+            await Task.WhenAll(tasks);
+            await Task.WhenAny(Task.Delay(10000), t2);
+            if (!t2.IsCompleted)
             {
-                s.Stop();
+                Assert.Fail("should've completed");
             }
+            this.Server.Stop();
+            this.Server.Stop();
+            this.Server.Start();
+            var t3 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(1)
+                                .ToTask();
+            await this.ConnectClientAsync();
+            await Task.WhenAny(Task.Delay(2000), t3);
+            if (!t3.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            this.Server.Stop();
+            await Assert.ThrowsExceptionAsync<SocketException>(() => this.ConnectClientAsync());
+            this.Server.Start();
+            this.Server.Stop();
+            await Assert.ThrowsExceptionAsync<SocketException>(() => this.ConnectClientAsync());
+            this.Server.Start();
+            var t4 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(1)
+                                .ToTask();
+            await this.ConnectClientAsync();
+            await Task.WhenAny(Task.Delay(2000), t4);
+            if (!t4.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            this.Server.Stop();
+
+            await Task.WhenAny(Task.Delay(1000), t);
+            if (!t.IsCompleted)
+            {
+                Assert.AreEqual(this.Clients.Count, take + failed, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
+            }
+
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 0);
+            Assert.AreEqual(this.Clients.Count, take + failed, "clients used doesn't equal to taken clients");
         }
+
+        [TestMethod]
+        public async Task TestClientsAfterServerStop()
+        {
+            const int take = 5;
+
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
+            this.Server.Start();
+            var t2 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(1)
+                                .ToTask();
+            await this.ConnectClientAsync();
+            await Task.WhenAny(Task.Delay(2000), t2);
+            if (!t2.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            this.Server.Stop();
+            this.Server.Start();
+            var t3 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(1)
+                                .ToTask();
+            await this.ConnectClientAsync();
+            await Task.WhenAny(Task.Delay(2000), t3);
+            if (!t3.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            this.Server.Stop();
+            this.Server.Start();
+            var c1 = await this.ConnectClientAsync();
+            var c2 = await this.ConnectClientAsync();
+            var c3 = await this.ConnectClientAsync();
+
+            await Task.WhenAny(Task.Delay(10000), t);
+            if (!t.IsCompleted)
+            {
+                Assert.AreEqual(this.Clients.Count(c => c.IsConnected()), 3);
+                Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
+            }
+
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 2);
+            Assert.AreEqual(this.Clients.Count(c => c.IsConnected()), 2);
+            Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+        }
+
+        [TestMethod]
+        public async Task TestCheckClientList()
+        {
+            const int take = 12;
+            int count = 0;
+
+            this.Server.ClientReceiveTimeout = TimeSpan.FromSeconds(5d);
+            var t = this.Server.WhenClientStatusChanged()
+                               .Where(c => c.Status == RunStatus.Started)
+                               .Take(take)
+                               .Do(c => c.WhenStatusChanged()
+                                         .Where(cs => cs == RunStatus.Stopped)
+                                         .Subscribe(_ => count++))
+                               .Do(c => Console.WriteLine($"client started {c.Guid}"))
+                               .ToTask();
+            this.Server.Start();
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "client list should be empty at start");
+            Assert.AreEqual(count, 0);
+
+            var tasks = new[]
+            {
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+            };
+            await Task.WhenAll(tasks);
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 4);
+            Assert.AreEqual(count, 0);
+
+            this.Server.Stop();
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "client list should be empty while stopped");
+            Assert.AreEqual(count, 4);
+            this.Server.Start();
+            var tasks2 = new[]
+            {
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+            };
+            await Task.WhenAll(tasks2);
+            await Task.Delay(this.Server.ClientReceiveTimeout.Add(TimeSpan.FromSeconds(2d)));
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "all clients should've timed-out");
+
+            var tasks3 = new[]
+            {
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+                this.ConnectClientAsync(),
+            };
+            await Task.WhenAll(tasks3);
+            const int toClose = 2;
+            foreach (var c in this.Clients.Where(c => c.IsConnected())
+                                          .Take(toClose))
+            {
+                c.Close();
+            }
+
+            await Task.WhenAny(Task.Delay(2000), t);
+            if (!t.IsCompleted)
+            {
+                Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+                Assert.Fail("should've completed");
+            }
+
+            Assert.AreEqual(count, 6);
+            Assert.AreEqual(this.Server.ConnectedClients.Count, tasks3.Length - toClose);
+            foreach (var c in this.Server.ConnectedClients.Values)
+            {
+                ((TcpReactiveClient)c).AssertIsConnected();
+            }
+
+            Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+        }
+
+        //[TestMethod]
+        //public async Task TestCheckGuidConsistency()
+        //{
+        //    const int take = 1;
+
+        //    var guids = new HashSet<Guid>();
+        //    var sub = this.Server.WhenClientStatusChanged()
+        //               .Where(c => c.Status == RunStatus.Started)
+        //               .Subscribe(c => guids.Add(c.Guid));
+        //    this.Server.Start();
+
+        //    new TcpClient().Connect(EndPoint);
+        //    new TcpClient().Connect(EndPoint);
+        //    new TcpClient().Connect(EndPoint);
+
+        //    Thread.Sleep(5000);
+        //    Assert.AreEqual(3, this.Server.ConnectedClients.Count);
+        //    Assert.AreEqual(this.Server.ConnectedClients.Count, guids.Count);
+
+        //    Assert.IsTrue(guids.All(g => s.ConnectedClients.ContainsKey(g)));
+
+        //    Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
+        //}
     }
 }

@@ -18,7 +18,7 @@ namespace ReactiveNetwork.Abstractions
             this.Guid = guid;
         }
 
-        private Subject<RunStatus> StatusSubject = new Subject<RunStatus>();
+        private readonly Subject<RunStatus> StatusSubject = new Subject<RunStatus>();
         private IObservable<RunStatus> StatusChangedObservable;
         public virtual IObservable<RunStatus> WhenStatusChanged() => this.StatusChangedObservable ??=
             this.StatusSubject.StartWith(this.Status)

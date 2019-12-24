@@ -13,8 +13,8 @@ namespace ReactiveNetwork.Tcp
     {
         public virtual int RetryCount { get; set; } = 5;
         public virtual TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(2d);
-        public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
-        public virtual TimeSpan SendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+        public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1d);
+        public virtual TimeSpan SendTimeout { get; set; } = TimeSpan.FromMinutes(1d);
 
         protected override bool CanOnlyStartOnce => true;
 

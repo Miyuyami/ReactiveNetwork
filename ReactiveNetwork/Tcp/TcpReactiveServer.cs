@@ -12,8 +12,8 @@ namespace ReactiveNetwork.Tcp
         private readonly TcpListener TcpListener;
         private readonly Socket Socket;
 
-        public virtual TimeSpan ClientReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1);
-        public virtual TimeSpan ClientSendTimeout { get; set; } = TimeSpan.FromMinutes(1);
+        public virtual TimeSpan ClientReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1d);
+        public virtual TimeSpan ClientSendTimeout { get; set; } = TimeSpan.FromMinutes(1d);
 
         public bool KeepAlive
         {
