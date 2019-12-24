@@ -99,8 +99,10 @@ namespace ReactiveNetwork.Tcp
             {
                 var sub = this.WhenStatusChanged()
                               .Where(s => s == RunStatus.Started)
-                              .SelectMany(Observable.While(() => this.Status == RunStatus.Started,
-                                                           Observable.FromAsync(this.TcpListener.AcceptTcpClientAsync)))
+                              .SelectMany(Observable.FromAsync(() => this.TcpListener.AcceptTcpClientAsync())
+                                                    .Repeat()
+                                                    .Catch(Observable.Return<TcpClient>(null)))
+                              .Where(c => c != null)
                               .SelectMany(this.CreateClient)
                               .Subscribe(client =>
                               {

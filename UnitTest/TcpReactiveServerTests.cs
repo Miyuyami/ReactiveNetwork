@@ -272,9 +272,9 @@ namespace UnitTest
             }
             this.Server.Stop();
             this.Server.Start();
-            var c1 = await this.ConnectClientAsync();
-            var c2 = await this.ConnectClientAsync();
-            var c3 = await this.ConnectClientAsync();
+            await this.ConnectClientAsync();
+            await this.ConnectClientAsync();
+            await this.ConnectClientAsync();
 
             await Task.WhenAny(Task.Delay(10000), t);
             if (!t.IsCompleted)
@@ -284,8 +284,8 @@ namespace UnitTest
                 Assert.Fail("should've completed");
             }
 
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 2);
-            Assert.AreEqual(this.Clients.Count(c => c.IsConnected()), 2);
+            Assert.AreEqual(this.Server.ConnectedClients.Count, 3);
+            Assert.AreEqual(this.Clients.Count(c => c.IsConnected()), 3);
             Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
@@ -294,8 +294,9 @@ namespace UnitTest
         {
             const int take = 12;
             int count = 0;
+            var timeout = TimeSpan.FromSeconds(5d);
 
-            this.Server.ClientReceiveTimeout = TimeSpan.FromSeconds(5d);
+            this.Server.ClientReceiveTimeout = timeout;
             var t = this.Server.WhenClientStatusChanged()
                                .Where(c => c.Status == RunStatus.Started)
                                .Take(take)
@@ -308,6 +309,10 @@ namespace UnitTest
             Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "client list should be empty at start");
             Assert.AreEqual(count, 0);
 
+            var t2 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(4)
+                                .ToTask();
             var tasks = new[]
             {
                 this.ConnectClientAsync(),
@@ -316,13 +321,22 @@ namespace UnitTest
                 this.ConnectClientAsync(),
             };
             await Task.WhenAll(tasks);
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 4);
+            await Task.WhenAny(Task.Delay(tasks.Length * 2000), t2);
+            if (!t2.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            Assert.AreEqual(this.Server.ConnectedClients.Count, tasks.Length);
             Assert.AreEqual(count, 0);
 
             this.Server.Stop();
             Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "client list should be empty while stopped");
             Assert.AreEqual(count, 4);
             this.Server.Start();
+            var t3 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(3)
+                                .ToTask();
             var tasks2 = new[]
             {
                 this.ConnectClientAsync(),
@@ -330,9 +344,20 @@ namespace UnitTest
                 this.ConnectClientAsync(),
             };
             await Task.WhenAll(tasks2);
-            await Task.Delay(this.Server.ClientReceiveTimeout.Add(TimeSpan.FromSeconds(2d)));
+            await Task.WhenAny(Task.Delay(tasks2.Length * 2000), t3);
+            if (!t3.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            this.Server.ClientReceiveTimeout = TimeSpan.FromMinutes(5d);
+            Assert.AreEqual(this.Server.ConnectedClients.Count, tasks2.Length);
+            await Task.Delay(timeout.Add(TimeSpan.FromSeconds(2d)));
             Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "all clients should've timed-out");
 
+            var t4 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Started)
+                                .Take(5)
+                                .ToTask();
             var tasks3 = new[]
             {
                 this.ConnectClientAsync(),
@@ -342,21 +367,38 @@ namespace UnitTest
                 this.ConnectClientAsync(),
             };
             await Task.WhenAll(tasks3);
+            await Task.WhenAny(Task.Delay(tasks3.Length * 2000), t4);
+            if (!t4.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            Assert.AreEqual(this.Server.ConnectedClients.Count, tasks3.Length);
             const int toClose = 2;
+            var t5 = this.Server.WhenClientStatusChanged()
+                                .Where(c => c.Status == RunStatus.Stopped)
+                                .Take(toClose)
+                                .ToTask();
             foreach (var c in this.Clients.Where(c => c.IsConnected())
                                           .Take(toClose))
             {
                 c.Close();
+                await Task.Delay(2000);
+                Console.WriteLine("removing");
             }
 
-            await Task.WhenAny(Task.Delay(2000), t);
+            await Task.WhenAny(Task.Delay(toClose * 2000), t5);
+            if (!t5.IsCompleted)
+            {
+                Assert.Fail("should've completed");
+            }
+            await Task.WhenAny(Task.Delay(toClose * 5000), t);
             if (!t.IsCompleted)
             {
                 Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
                 Assert.Fail("should've completed");
             }
 
-            Assert.AreEqual(count, 6);
+            Assert.AreEqual(count, 9);
             Assert.AreEqual(this.Server.ConnectedClients.Count, tasks3.Length - toClose);
             foreach (var c in this.Server.ConnectedClients.Values)
             {
