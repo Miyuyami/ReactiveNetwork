@@ -11,6 +11,13 @@ namespace ReactiveNetwork.Tcp
 {
     public class TcpReactiveClient : ReactiveClient
     {
+        private const int _BufferLength = 1 << 20; // 1MiB
+        private readonly byte[] _Buffer = new byte[_BufferLength];
+
+        private readonly TcpClient TcpClient;
+        private readonly Socket Socket;
+        private readonly NetworkStream NetworkStream;
+
         public virtual int RetryCount { get; set; } = 5;
         public virtual TimeSpan RetryDelay { get; set; } = TimeSpan.FromSeconds(2d);
         public virtual TimeSpan ReceiveTimeout { get; set; } = TimeSpan.FromMinutes(1d);
@@ -20,44 +27,21 @@ namespace ReactiveNetwork.Tcp
 
         public bool KeepAlive
         {
-            get => (int)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive) != 0;
-            set => this.SetKeepAlive(active: value);
+            get => Convert.ToBoolean(this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive));
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
         }
 
-        private TimeSpan _KeepAliveInterval;
-        public TimeSpan KeepAliveInterval
+        public int KeepAliveIntervalSeconds
         {
-            get => this._KeepAliveInterval;
-            set
-            {
-                if (this._KeepAliveInterval != value)
-                {
-                    this._KeepAliveInterval = value;
-                    this.SetKeepAlive(interval: value);
-                }
-            }
+            get => Convert.ToInt32(this.Socket.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval));
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, value);
         }
 
-        private TimeSpan _KeepAliveTime;
-        public TimeSpan KeepAliveTime
+        public int KeepAliveTimeSeconds
         {
-            get => this._KeepAliveTime;
-            set
-            {
-                if (this._KeepAliveTime != value)
-                {
-                    this._KeepAliveTime = value;
-                    this.SetKeepAlive(time: value);
-                }
-            }
+            get => Convert.ToInt32(this.Socket.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime));
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, value);
         }
-
-        private readonly TcpClient TcpClient;
-        private readonly Socket Socket;
-        private readonly NetworkStream NetworkStream;
-
-        private const int _BufferLength = 1 << 20; // 1MiB
-        private readonly byte[] _Buffer = new byte[_BufferLength];
 
         protected internal TcpReactiveClient(Guid guid, TcpClient connectedTcpClient) : base(guid)
         {
@@ -80,14 +64,12 @@ namespace ReactiveNetwork.Tcp
                                   return Observable.Throw<Unit>(ex);
                               }
 
-                              if (ex is ObjectDisposedException)
+                              switch (ex)
                               {
-                                  return Observable.Throw<Unit>(ex);
-                              }
-
-                              if (ex is TimeoutException)
-                              {
-                                  return Observable.Throw<Unit>(ex);
+                                  case ObjectDisposedException:
+                                      return Observable.Throw<Unit>(ex);
+                                  case TimeoutException:
+                                      return Observable.Throw<Unit>(ex);
                               }
 
                               retryCount--;
@@ -97,7 +79,6 @@ namespace ReactiveNetwork.Tcp
 
         private IConnectableObservable<ClientResult> DataReceivedConnectableObservable;
         private IDisposable DataReceivedConnectionDisposable;
-
         private void InitDataReceived()
         {
             this.DataReceivedConnectableObservable =
@@ -110,6 +91,7 @@ namespace ReactiveNetwork.Tcp
                     {
                         byte[] readBytes = new byte[receivedBytes];
                         Buffer.BlockCopy(this._Buffer, 0, readBytes, 0, receivedBytes);
+
                         return ClientResult.FromRead(this, readBytes);
                     })
                     .Finally(() => this.Stop())
@@ -166,7 +148,7 @@ namespace ReactiveNetwork.Tcp
             }
             catch
             {
-
+                // ignore exceptions as we just check if we're connected
             }
 
             return false;
@@ -200,21 +182,22 @@ namespace ReactiveNetwork.Tcp
             => CreateClientConnection(ipEndPoint.Address, ipEndPoint.Port, startClient);
 
         public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool startClient = true)
-            => CreateClientConnection(ipAddress, port, startClient, false, TimeSpan.Zero, TimeSpan.Zero);
+            => CreateClientConnection(ipAddress, port, startClient, false, 0, 0);
 
-        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool startClient, bool keepAlive, TimeSpan keepAliveInterval, TimeSpan keepAliveTime) =>
+        public static IObservable<TcpReactiveClient> CreateClientConnection(IPAddress ipAddress, int port, bool shouldStartClient, bool keepAlive, int keepAliveInterval, int keepAliveTime) =>
             Observable.FromAsync(async () =>
-                      {
-                          var tcpClient = new TcpClient();
-                          tcpClient.Client.SetKeepAlive(keepAlive, keepAliveInterval, keepAliveTime);
+            {
+                var tcpClient = new TcpClient();
+                var socket = tcpClient.Client;
+                SetSocketOption(socket, keepAlive, keepAliveInterval, keepAliveInterval);
 
-                          await tcpClient.ConnectAsync(ipAddress, port);
-                          return tcpClient;
-                      })
+                await tcpClient.ConnectAsync(ipAddress, port);
+                return tcpClient;
+            })
                       .Select(c =>
                       {
                           var client = new TcpReactiveClient(Guid.NewGuid(), c);
-                          if (startClient)
+                          if (shouldStartClient)
                           {
                               client.Start();
                           }
@@ -222,7 +205,19 @@ namespace ReactiveNetwork.Tcp
                           return client;
                       });
 
-        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null) =>
-            this.Socket.SetKeepAlive(active ?? this.KeepAlive, interval ?? this.KeepAliveInterval, time ?? this.KeepAliveTime);
+        private static void SetSocketOption(Socket socket, bool keepAlive, int keepAliveInterval, int keepAliveTime)
+        {
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, keepAlive);
+
+            if (keepAliveInterval > 0)
+            {
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, keepAliveInterval);
+            }
+
+            if (keepAliveTime > 0)
+            {
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, keepAliveTime);
+            }
+        }
     }
 }

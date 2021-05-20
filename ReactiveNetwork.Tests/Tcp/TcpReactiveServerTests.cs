@@ -35,7 +35,7 @@ namespace ReactiveNetwork.Tcp.Tests
         {
             this.Server.Stop();
 
-            while (this.Clients.Count > 0)
+            while (!this.Clients.IsEmpty)
             {
                 if (this.Clients.TryTake(out TcpClient c))
                 {
@@ -232,7 +232,7 @@ namespace ReactiveNetwork.Tcp.Tests
                 Assert.Fail("should've completed");
             }
 
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 0);
+            Assert.AreEqual(0, this.Server.ConnectedClients.Count);
             Assert.AreEqual(this.Clients.Count, take + failed, "clients used doesn't equal to taken clients");
         }
 
@@ -278,13 +278,13 @@ namespace ReactiveNetwork.Tcp.Tests
             await Task.WhenAny(Task.Delay(10000), t);
             if (!t.IsCompleted)
             {
-                Assert.AreEqual(this.Clients.Count(c => c.IsConnected()), 3);
+                Assert.AreEqual(3, this.Clients.Count(c => c.IsConnected()));
                 Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
                 Assert.Fail("should've completed");
             }
 
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 3);
-            Assert.AreEqual(this.Clients.Count(c => c.IsConnected()), 3);
+            Assert.AreEqual(3, this.Server.ConnectedClients.Count);
+            Assert.AreEqual(3, this.Clients.Count(c => c.IsConnected()));
             Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
@@ -305,8 +305,8 @@ namespace ReactiveNetwork.Tcp.Tests
                                .Do(c => Console.WriteLine($"client started {c.Guid}"))
                                .ToTask();
             this.Server.Start();
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "client list should be empty at start");
-            Assert.AreEqual(count, 0);
+            Assert.AreEqual(0, this.Server.ConnectedClients.Count, "client list should be empty at start");
+            Assert.AreEqual(0, count);
 
             var t2 = this.Server.WhenClientStatusChanged()
                                 .Where(c => c.Status == RunStatus.Started)
@@ -326,11 +326,11 @@ namespace ReactiveNetwork.Tcp.Tests
                 Assert.Fail("should've completed");
             }
             Assert.AreEqual(this.Server.ConnectedClients.Count, tasks.Length);
-            Assert.AreEqual(count, 0);
+            Assert.AreEqual(0, count);
 
             this.Server.Stop();
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "client list should be empty while stopped");
-            Assert.AreEqual(count, 4);
+            Assert.AreEqual(0, this.Server.ConnectedClients.Count, "client list should be empty while stopped");
+            Assert.AreEqual(4, count);
             this.Server.Start();
             var t3 = this.Server.WhenClientStatusChanged()
                                 .Where(c => c.Status == RunStatus.Started)
@@ -351,7 +351,7 @@ namespace ReactiveNetwork.Tcp.Tests
             this.Server.ClientReceiveTimeout = TimeSpan.FromMinutes(5d);
             Assert.AreEqual(this.Server.ConnectedClients.Count, tasks2.Length);
             await Task.Delay(timeout.Add(TimeSpan.FromSeconds(2d)));
-            Assert.AreEqual(this.Server.ConnectedClients.Count, 0, "all clients should've timed-out");
+            Assert.AreEqual(0, this.Server.ConnectedClients.Count, "all clients should've timed-out");
 
             var t4 = this.Server.WhenClientStatusChanged()
                                 .Where(c => c.Status == RunStatus.Started)
@@ -397,7 +397,7 @@ namespace ReactiveNetwork.Tcp.Tests
                 Assert.Fail("should've completed");
             }
 
-            Assert.AreEqual(count, 9);
+            Assert.AreEqual(9, count);
             Assert.AreEqual(this.Server.ConnectedClients.Count, tasks3.Length - toClose);
             foreach (var c in this.Server.ConnectedClients.Values)
             {
@@ -407,28 +407,28 @@ namespace ReactiveNetwork.Tcp.Tests
             Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
         }
 
-        //[TestMethod]
-        //public async Task TestCheckGuidConsistency()
-        //{
-        //    const int take = 1;
+        [TestMethod]
+        public void AfterSet_KeepAlive_EqualsSame()
+        {
+            this.Server.KeepAlive = true;
 
-        //    var guids = new HashSet<Guid>();
-        //    var sub = this.Server.WhenClientStatusChanged()
-        //               .Where(c => c.Status == RunStatus.Started)
-        //               .Subscribe(c => guids.Add(c.Guid));
-        //    this.Server.Start();
+            Assert.AreEqual(true, this.Server.KeepAlive);
+        }
 
-        //    new TcpClient().Connect(EndPoint);
-        //    new TcpClient().Connect(EndPoint);
-        //    new TcpClient().Connect(EndPoint);
+        [TestMethod]
+        public void AfterSet_KeepAliveIntervalSeconds_EqualsSame()
+        {
+            this.Server.KeepAliveIntervalSeconds = 100;
 
-        //    Thread.Sleep(5000);
-        //    Assert.AreEqual(3, this.Server.ConnectedClients.Count);
-        //    Assert.AreEqual(this.Server.ConnectedClients.Count, guids.Count);
+            Assert.AreEqual(100, this.Server.KeepAliveIntervalSeconds);
+        }
 
-        //    Assert.IsTrue(guids.All(g => s.ConnectedClients.ContainsKey(g)));
+        [TestMethod]
+        public void AfterSet_KeepAliveTimeSeconds_EqualsSame()
+        {
+            this.Server.KeepAliveTimeSeconds = 200;
 
-        //    Assert.AreEqual(this.Clients.Count, take, "clients used doesn't equal to taken clients");
-        //}
+            Assert.AreEqual(200, this.Server.KeepAliveTimeSeconds);
+        }
     }
 }

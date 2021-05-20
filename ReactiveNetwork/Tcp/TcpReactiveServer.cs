@@ -17,36 +17,20 @@ namespace ReactiveNetwork.Tcp
 
         public bool KeepAlive
         {
-            get => (int)this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive) != 0;
-            set => this.SetKeepAlive(active: value);
+            get => Convert.ToBoolean(this.Socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive));
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, value);
         }
 
-        private TimeSpan _KeepAliveInterval;
-        public TimeSpan KeepAliveInterval
+        public int KeepAliveIntervalSeconds
         {
-            get => this._KeepAliveInterval;
-            set
-            {
-                if (this._KeepAliveInterval != value)
-                {
-                    this._KeepAliveInterval = value;
-                    this.SetKeepAlive(interval: value);
-                }
-            }
+            get => Convert.ToInt32(this.Socket.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval));
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, value);
         }
 
-        private TimeSpan _KeepAliveTime;
-        public TimeSpan KeepAliveTime
+        public int KeepAliveTimeSeconds
         {
-            get => this._KeepAliveTime;
-            set
-            {
-                if (this._KeepAliveTime != value)
-                {
-                    this._KeepAliveTime = value;
-                    this.SetKeepAlive(time: value);
-                }
-            }
+            get => Convert.ToInt32(this.Socket.GetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime));
+            set => this.Socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, value);
         }
 
         public TcpReactiveServer(IPAddress address, int port) : base(address, port)
@@ -125,10 +109,6 @@ namespace ReactiveNetwork.Tcp
                               });
 
                 return sub.Dispose;
-                //return () =>
-                //{
-                //    sub.Dispose();
-                //};
             })
             .Publish()
             .RefCount();
@@ -153,10 +133,5 @@ namespace ReactiveNetwork.Tcp
 
             base.InternalStop();
         }
-
-        public void SetKeepAlive(bool? active = null, TimeSpan? interval = null, TimeSpan? time = null) =>
-            this.Socket.SetKeepAlive(active ?? this.KeepAlive,
-                                     interval ?? this.KeepAliveInterval,
-                                     time ?? this.KeepAliveTime);
     }
 }

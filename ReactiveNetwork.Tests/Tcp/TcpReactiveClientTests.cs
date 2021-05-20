@@ -87,10 +87,6 @@ namespace ReactiveNetwork.Tcp.Tests
         public async Task TestClientStopOnServerStop()
         {
             var client = await TcpReactiveClient.CreateClientConnection(EndPoint);
-            var whenClientStoppedTask =
-                client.WhenStatusChanged()
-                      .Where(rs => rs == RunStatus.Stopped)
-                      .ToTask();
 
             client.AssertIsConnected();
 
@@ -117,34 +113,30 @@ namespace ReactiveNetwork.Tcp.Tests
         }
 
         [TestMethod]
-        public async Task TestThat()
+        public async Task AfterSet_KeepAlive_EqualsSame()
         {
-            var source =
-                this.Server.WhenClientStatusChanged()
-                           .Where(c => c.Status == RunStatus.Started)
-                           .SelectMany(c => c.WhenDataReceived())
-                           .Where(cr => cr.Success);
+            var client = await TcpReactiveClient.CreateClientConnection(EndPoint);
+            client.KeepAlive = true;
 
-            var sub =
-                source.Subscribe(cr =>
-                {
-                    var data = cr.Data;
+            Assert.AreEqual(true, client.KeepAlive);
+        }
 
-                    if (data.Length > 0)
-                    {
-                        switch (data[0])
-                        {
-                            case 0:
-                                break;
-                            case 1:
-                                break;
-                            case 2:
-                                break;
-                            case 3:
-                                break;
-                        }
-                    }
-                });
+        [TestMethod]
+        public async Task AfterSet_KeepAliveIntervalSeconds_EqualsSame()
+        {
+            var client = await TcpReactiveClient.CreateClientConnection(EndPoint);
+            client.KeepAliveIntervalSeconds = 100;
+
+            Assert.AreEqual(100, client.KeepAliveIntervalSeconds);
+        }
+
+        [TestMethod]
+        public async Task AfterSet_KeepAliveTimeSeconds_EqualsSame()
+        {
+            var client = await TcpReactiveClient.CreateClientConnection(EndPoint);
+            client.KeepAliveTimeSeconds = 200;
+
+            Assert.AreEqual(200, client.KeepAliveTimeSeconds);
         }
     }
 }
