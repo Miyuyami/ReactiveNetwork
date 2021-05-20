@@ -1,9 +1,8 @@
-﻿using System.Net.Sockets;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ReactiveNetwork.Contracts;
-using ReactiveNetwork.Tcp;
+using System.Net.Sockets;
 
-namespace UnitTest
+namespace ReactiveNetwork.Tcp.Tests
 {
     public static class Helpers
     {

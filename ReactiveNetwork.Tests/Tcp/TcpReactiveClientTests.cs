@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reactive.Linq;
@@ -6,9 +7,8 @@ using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ReactiveNetwork.Contracts;
-using ReactiveNetwork.Tcp;
 
-namespace UnitTest
+namespace ReactiveNetwork.Tcp.Tests
 {
     [TestClass]
     public class TcpReactiveClientTests
